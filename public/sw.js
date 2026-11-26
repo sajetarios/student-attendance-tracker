@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v469-date-specific-timetable";
+const CACHE = "attendigo-v470-ob-completion";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -151,7 +151,7 @@ const SHELL = [
   "/staff-lunch-ui.js?v=10",
   "/staff-precise-location.js?v=1",
   "/staff-department-location.js?v=8",
-  "/staff-ob-ui.js?v=9",
+  "/staff-ob-ui.js?v=10",
   "/locator-slip-ui.js?v=5",
   "/staff-ob.css?v=1",
   "/staff-lunch.css?v=8",
@@ -201,7 +201,7 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=17",
   "/login-routing.js",
-  "/principal-dashboard.js?v=26",
+  "/principal-dashboard.js?v=27",
   "/principal-trusted-campus.js?v=4",
   "/campus-location-ui.css?v=1",
   "/principal-dashboard.css?v=18",

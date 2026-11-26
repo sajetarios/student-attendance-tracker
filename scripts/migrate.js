@@ -104,7 +104,8 @@ const REQUIRED_MIGRATIONS = [
   '096_shared_locator_slip_template.sql',
   '097_locator_template_requests.sql',
   '098_central_locator_template_versions.sql',
-  '099_locator_recognition_hints.sql'
+  '099_locator_recognition_hints.sql',
+  '100_ob_completion_verification.sql'
 ];
 
 function checksum(content) {

@@ -21,6 +21,10 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
     u.display_name AS "staffName",u.role AS "staffRole",o.department_id AS "departmentId",
     o.purpose,o.destination,o.starts_at AS "startsAt",o.ends_at AS "endsAt",
     o.status,o.submitted_at AS "submittedAt",o.decision_note AS "decisionNote",
+    o.completion_status AS "completionStatus",o.completion_at AS "completionAt",
+    o.completion_reason AS "completionReason",o.completion_reference AS "completionReference",
+    o.completion_head_note AS "completionHeadNote",o.completion_decision_note AS "completionDecisionNote",
+    o.completion_decided_at AS "completionDecidedAt",
     o.head_decided_at AS "headDecidedAt",o.admin_decided_at AS "adminDecidedAt"
     FROM staff_official_business_requests o
     JOIN school_users u ON u.school_id=o.school_id AND u.user_id=o.staff_user_id
@@ -128,12 +132,16 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
      u.display_name AS "staffName",u.role AS "staffRole",o.department_id AS "departmentId",
      o.purpose,o.destination,o.starts_at AS "startsAt",o.ends_at AS "endsAt",
      o.status,o.submitted_at AS "submittedAt",o.decision_note AS "decisionNote",
+    o.completion_status AS "completionStatus",o.completion_at AS "completionAt",
+    o.completion_reason AS "completionReason",o.completion_reference AS "completionReference",
+    o.completion_head_note AS "completionHeadNote",o.completion_decision_note AS "completionDecisionNote",
+    o.completion_decided_at AS "completionDecidedAt",
      o.head_decided_at AS "headDecidedAt",o.admin_decided_at AS "decidedAt"
     FROM staff_official_business_requests o
     JOIN school_users u ON u.school_id=o.school_id AND u.user_id=o.staff_user_id
     WHERE o.school_id=$1 AND o.staff_user_id<>$2 AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
       AND (${history?"o.status IN ('APPROVED','REJECTED','CANCELLED')":
-      "(o.status='PENDING_ADMIN' OR (o.status='PENDING_HEAD' AND u.role='DEPARTMENT_HEAD'))"})
+      "(o.status='PENDING_ADMIN' OR (o.status='PENDING_HEAD' AND u.role='DEPARTMENT_HEAD') OR (o.status='APPROVED' AND o.completion_status='PENDING_PRINCIPAL'))"})
     ORDER BY o.submitted_at DESC,o.request_id DESC LIMIT 21 OFFSET $3`,
     [req.auth.schoolId,req.auth.userId,offset]);
    return res.json({requests:result.rows.slice(0,20),hasMore:result.rows.length>20,offset});
@@ -279,6 +287,78 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
 
    await client.query('COMMIT');
    return res.status(201).json({requestId:id,status});
+  }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
+  finally{client.release();}
+ });
+ // Completion records actual duty end separately from the signed authorization.
+ app.post('/api/staff-attendance/official-business/:id/complete',...auth,async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  const input=String(req.body?.completedAt||''),reason=String(req.body?.reason||'').trim(),reference=String(req.body?.reference||'').trim();
+  const completedAt=new Date(input);
+  if(!uuid.test(req.params.id)||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|\+08:00)$/.test(input)||
+    !Number.isFinite(completedAt.getTime())||completedAt.getTime()>Date.now()||
+    !reference||reference.length>300||reason.length>1000)
+   return res.status(400).json({error:'Enter a valid actual completion date/time, evidence reference and reason when the approved time changed.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const result=await client.query(`UPDATE staff_official_business_requests o SET
+     completion_at=$4,completion_status=$5,completion_reason=$6,completion_reference=$7,
+     completion_submitted_at=NOW(),completion_head_note=NULL,completion_decision_note=NULL,completion_decided_at=NULL
+     WHERE o.school_id=$1 AND o.request_id=$2 AND o.staff_user_id=$3 AND o.status='APPROVED'
+       AND (o.completion_status IS NULL OR o.completion_status='REJECTED')
+       AND $4::timestamptz>=o.starts_at AND $4::timestamptz<=o.starts_at+INTERVAL '14 days'
+       AND $4::timestamptz<=NOW()
+       AND (date_trunc('minute',$4::timestamptz)=date_trunc('minute',o.ends_at) OR length($6)>0)
+     RETURNING request_id,completion_status`,[req.auth.schoolId,req.params.id,req.auth.userId,completedAt,
+      req.auth.role==='DEPARTMENT_HEAD'?'PENDING_PRINCIPAL':'PENDING_HEAD',reason,reference]);
+   if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'OB unavailable, already under review, or invalid actual completion. A changed end time requires a reason.'});}
+   await audit(client,req,'STAFF_OB_COMPLETION_SUBMITTED',req.params.id,{completedAt:completedAt.toISOString(),reason,reference,status:result.rows[0].completion_status});
+   await client.query('COMMIT');return res.status(201).json({requestId:req.params.id,completionStatus:result.rows[0].completion_status});
+  }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
+  finally{client.release();}
+ });
+ app.post('/api/staff-attendance/official-business/:id/completion-recommend',authenticateSchoolClient,requireSchoolRoles('DEPARTMENT_HEAD'),async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  const decision=String(req.body?.decision||'').toUpperCase(),note=String(req.body?.note||'').trim();
+  if(!uuid.test(req.params.id)||!req.auth.departmentId||!['RECOMMEND','REJECT'].includes(decision)||note.length>1000||(decision==='REJECT'&&!note))
+   return res.status(400).json({error:'Valid recommendation and department required; rejection requires a reason.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const result=await client.query(`UPDATE staff_official_business_requests o
+     SET completion_status=$5,completion_head_note=$6,completion_decided_at=CASE WHEN $5='REJECTED' THEN NOW() ELSE NULL END
+     WHERE o.school_id=$1 AND o.request_id=$2 AND o.department_id=$3 AND o.staff_user_id<>$4
+      AND o.status='APPROVED' AND o.completion_status='PENDING_HEAD'
+      AND EXISTS(SELECT 1 FROM school_users u WHERE u.school_id=o.school_id AND u.user_id=o.staff_user_id AND u.role IN ('TEACHER','SCHOOL_ADMIN'))
+     RETURNING completion_status`,[req.auth.schoolId,req.params.id,req.auth.departmentId,req.auth.userId,
+      decision==='RECOMMEND'?'PENDING_PRINCIPAL':'REJECTED',note||null]);
+   if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Completion unavailable, outside department, already reviewed, or self-review prohibited.'});}
+   await audit(client,req,'STAFF_OB_COMPLETION_'+(decision==='RECOMMEND'?'RECOMMENDED':'HEAD_REJECTED'),req.params.id,{note});
+   await client.query('COMMIT');return res.json({requestId:req.params.id,completionStatus:result.rows[0].completion_status});
+  }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
+  finally{client.release();}
+ });
+ app.post('/api/staff-attendance/official-business/:id/completion-decide',authenticateSchoolClient,requireSchoolRoles('PRINCIPAL'),async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  const decision=String(req.body?.decision||'').toUpperCase(),note=String(req.body?.note||'').trim();
+  if(!uuid.test(req.params.id)||!['APPROVE','REJECT'].includes(decision)||note.length>1000||
+     (decision==='APPROVE'&&req.body?.evidenceVerified!==true)||(decision==='REJECT'&&!note))
+   return res.status(400).json({error:'Verify supporting evidence before approval or provide a reason for rejection.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const result=await client.query(`UPDATE staff_official_business_requests o
+     SET completion_status=$4,completion_decision_note=$5,completion_decided_at=NOW()
+     WHERE o.school_id=$1 AND o.request_id=$2 AND o.staff_user_id<>$3
+      AND o.status='APPROVED' AND o.completion_status='PENDING_PRINCIPAL'
+      AND EXISTS(SELECT 1 FROM school_users u WHERE u.school_id=o.school_id AND u.user_id=o.staff_user_id AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'))
+     RETURNING completion_status,completion_at`,[req.auth.schoolId,req.params.id,req.auth.userId,
+      decision==='APPROVE'?'VERIFIED':'REJECTED',note||null]);
+   if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Completion not awaiting Principal verification, already decided, or self-approval prohibited.'});}
+   await audit(client,req,decision==='APPROVE'?'STAFF_OB_COMPLETION_VERIFIED':'STAFF_OB_COMPLETION_PRINCIPAL_REJECTED',req.params.id,
+    {note,evidenceVerified:decision==='APPROVE',completedAt:result.rows[0].completion_at});
+   await client.query('COMMIT');return res.json({requestId:req.params.id,completionStatus:result.rows[0].completion_status});
   }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
   finally{client.release();}
  });

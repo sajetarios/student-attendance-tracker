@@ -16,7 +16,7 @@ function buildObDtrRemarks(date,approvedOb=[],physicalGate=[],now=Date.now()){
  const dayStart=Date.parse(date+'T00:00:00+08:00'),dayEnd=dayStart+86400000;
  if(!Number.isFinite(dayStart))return [];
  return approvedOb.filter(ob=>{
-  const start=Date.parse(ob.startsAt),end=Date.parse(ob.endsAt);
+  const start=Date.parse(ob.startsAt),end=Date.parse(ob.completionStatus==='VERIFIED'?(ob.coverageEndsAt||ob.endsAt):ob.endsAt);
   return Number.isFinite(start)&&Number.isFinite(end)&&start<dayEnd&&end>dayStart;
  }).map(ob=>{
   const start=Date.parse(ob.startsAt),end=Date.parse(ob.endsAt);
@@ -38,12 +38,14 @@ function buildObDtrRemarks(date,approvedOb=[],physicalGate=[],now=Date.now()){
     .sort((a,b)=>Date.parse(a.occurredAt)-Date.parse(b.occurredAt));
   const nextArrival=hasUnreturnedDeparture&&nextEvents[0]?.eventType==='TIME_IN'?nextEvents[0]:null;
   const noReturnReview=!returnEvent&&hasUnreturnedDeparture;
+  const completionVerified=ob.completionStatus==='VERIFIED'&&Number.isFinite(Date.parse(ob.completionAt));
+  const completionText=completionVerified?' · Verified OB completion '+dateInManila(ob.completionAt)+' '+localTime(ob.completionAt):'';
   return {
    type:'APPROVED_OB',requestId:ob.requestId,
    approvedStart:ob.startsAt,approvedEnd:ob.endsAt,
    purpose:ob.purpose,destination:ob.destination,
-   remark:sameDay?`Approved OB ${localTime(ob.startsAt)}–${localTime(ob.endsAt)}`:'Approved OB (spans reporting date)',
-   ...(returnEvent?{actualGateReturn:returnEvent.occurredAt,
+   remark:(sameDay?`Approved OB ${localTime(ob.startsAt)}–${localTime(ob.endsAt)}`:'Approved OB (spans reporting date)')+completionText,
+   ...(completionVerified?{completionAt:ob.completionAt,completionStatus:'VERIFIED'}:ob.completionStatus?{completionStatus:ob.completionStatus,exception:'OB_COMPLETION_REVIEW',exceptionRemark:'OB completion '+String(ob.completionStatus).replaceAll('_',' ').toLowerCase()+'; reported completion is not an official DTR punch.'}:returnEvent?{actualGateReturn:returnEvent.occurredAt,
      exception:'RETURN_AFTER_APPROVED_END_REVIEW',
      exceptionRemark:`Gate re-entry ${localTime(returnEvent.occurredAt)} (${lateBy(end,returnEvent.occurredAt)} after OB end).`}:noReturnReview?{
      exception:'OB_NO_SAME_DAY_RETURN_REVIEW',

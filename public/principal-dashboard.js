@@ -301,18 +301,22 @@
     const item=make('article','surface');
     const title=make('h3',null,request.staffName||'Staff member');
     const role=String(request.staffRole||'').replaceAll('_',' ');
-    const state=obApprovalScope==='pending'?'Awaiting Principal authorization':String(request.status||'').replaceAll('_',' ');
+    const completionReview=request.status==='APPROVED'&&request.completionStatus==='PENDING_PRINCIPAL';
+    const state=completionReview?'Awaiting OB completion verification':obApprovalScope==='pending'?'Awaiting Principal authorization':String(request.status||'').replaceAll('_',' ');
     item.append(title,make('p','source-note',role+' · '+state),make('p',null,'Purpose: '+(request.purpose||'Not supplied')),make('p',null,'Destination: '+(request.destination||'Not supplied')),make('p',null,obApprovalDate(request.startsAt)+' – '+obApprovalDate(request.endsAt)));
     if(request.headDecidedAt)item.append(make('p','source-note','Department recommendation recorded '+obApprovalDate(request.headDecidedAt)));
     if(request.decidedAt)item.append(make('p','source-note','Decision recorded '+obApprovalDate(request.decidedAt)));
     if(request.decisionNote)item.append(make('p','source-note','Recorded note: '+request.decisionNote));
+    if(request.completionStatus)item.append(make('p',null,'OB completion: '+String(request.completionStatus).replaceAll('_',' ')+' · '+obApprovalDate(request.completionAt)),make('p',null,'Evidence reference: '+(request.completionReference||'Not supplied')),make('p',null,'Reason: '+(request.completionReason||'Completed as scheduled')));
+    if(request.completionHeadNote)item.append(make('p','source-note','Department note: '+request.completionHeadNote));
+    if(request.completionDecisionNote)item.append(make('p','source-note','Completion decision: '+request.completionDecisionNote));
     if(obApprovalScope==='pending'||request.status==='APPROVED'){
      if(window.AttendigoLocatorSlip)window.AttendigoLocatorSlip.attach(item,request.requestId,{label:'View Locator Slip',buttonClass:'quiet-button'});
      else item.append(make('p','source-note','Refresh Attendigo to prepare the Locator Slip.'));
     }
     if(obApprovalScope==='pending'){
      const actions=make('div','principal-workspace-actions');actions.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
-     const approve=make('button','quiet-button','Confirm signed authorization');
+     const approve=make('button','quiet-button',completionReview?'Verify OB completion':'Confirm signed authorization');
      const reject=make('button','quiet-button','Disapprove');
      for(const button of [approve,reject])button.type='button';
      approve.addEventListener('click',()=>void decideObApproval(request,'APPROVE'));
@@ -331,9 +335,10 @@
   let saved=false;
   try{
    const approving=decision==='APPROVE';
-   const note=await window.AppDialog.prompt(approving?'Confirm that you personally signed the required physical travel authorization for '+request.staffName+'. Do not confirm if it has not been signed.':'Disapprove this official business request for '+request.staffName+'?','',{title:approving?'Confirm handwritten signature':'Disapprove official business',label:approving?'Optional note':'Reason for disapproval',inputType:'textarea',maxLength:1000,validate:value=>value.length<=1000&&(approving||value.trim().length>0)||'Enter a valid note (maximum 1000 characters).',confirmText:approving?'I have signed — authorize':'Disapprove',variant:approving?undefined:'danger'});
+   const completion=request.status==='APPROVED'&&request.completionStatus==='PENDING_PRINCIPAL';
+   const note=await window.AppDialog.prompt(completion?(approving?'Verify the certified evidence and actual OB completion time for '+request.staffName+'. This does not create a clock punch.':'Reject the reported OB completion for '+request.staffName+'?'):approving?'Confirm that you personally signed the required physical travel authorization for '+request.staffName+'. Do not confirm if it has not been signed.':'Disapprove this official business request for '+request.staffName+'?','',{title:approving?'Confirm handwritten signature':'Disapprove official business',label:approving?'Optional note':'Reason for disapproval',inputType:'textarea',maxLength:1000,validate:value=>value.length<=1000&&(approving||value.trim().length>0)||'Enter a valid note (maximum 1000 characters).',confirmText:approving?(completion?'Evidence verified — approve':'I have signed — authorize'):'Disapprove',variant:approving?undefined:'danger'});
    if(note===null)return;
-   const response=await fetch('/api/staff-attendance/official-business/'+encodeURIComponent(request.requestId)+'/decide',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision,note,signedAuthorization:approving})});
+   const response=await fetch('/api/staff-attendance/official-business/'+encodeURIComponent(request.requestId)+(completion?'/completion-decide':'/decide'),{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision,note,signedAuthorization:!completion&&approving,evidenceVerified:completion&&approving})});
    const data=await response.json().catch(()=>({}));
    if(!response.ok)throw Error(data.error||'Decision could not be saved.');
    saved=true;document.dispatchEvent(new Event('attendigo:requests-changed'));

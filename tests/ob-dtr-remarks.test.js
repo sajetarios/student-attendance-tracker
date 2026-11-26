@@ -59,3 +59,15 @@ test('next morning entry is evidence for separate attendance, never prior PM_OUT
  assert.equal(buildObDtrRemarks('2026-11-25',[request],gate.slice(0,1),Date.parse('2026-11-25T17:00:00+08:00'))[0].exception,undefined);
  assert.equal(buildObDtrRemarks('2026-11-25',[request],gate.slice(1),now)[0].exception,undefined);
 });
+
+
+test('verified completion replaces unresolved review without inventing DTR punches; pending completion does not extend coverage',()=>{
+ const sample={...ob,completionStatus:'VERIFIED',completionAt:'2026-11-20T00:30:00+08:00',coverageEndsAt:'2026-11-20T00:30:00+08:00'};
+ const prior=buildObDtrRemarks(date,[sample],[])[0];
+ assert.match(prior.remark,/Verified OB completion 2026-11-20 00:30/);
+ assert.equal(prior.exception,undefined);assert.equal(prior.slot,undefined);
+ assert.equal(buildObDtrRemarks('2026-11-20',[sample],[]).length,1);
+ const pending={...sample,completionStatus:'PENDING_PRINCIPAL'};
+ assert.equal(buildObDtrRemarks(date,[pending],[])[0].exception,'OB_COMPLETION_REVIEW');
+ assert.equal(buildObDtrRemarks('2026-11-20',[pending],[]).length,0);
+});
