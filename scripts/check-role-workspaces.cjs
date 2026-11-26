@@ -6,6 +6,11 @@ const read=n=>fs.readFileSync(path.join(__dirname,'..','public',n),'utf8');
 const staff=read('portal.html'),js=read('attendigo-role-workspaces.js');
 function styles(source){return [...source.split('</head>')[0].matchAll(/<link\b[^>]*href="\/([^"?]+\.css)(?:\?[^"]*)?"[^>]*>|<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map(m=>m[1]?read(m[1]):m[2]);}
 function slice(source,start,end){const i=source.indexOf(start),j=source.indexOf(end,i);assert.ok(i>=0&&j>i,start);return source.slice(i,j+end.length);}
+const menuSource=read('portal.js');
+const menuStart=menuSource.indexOf('    // V5.5: prioritize daily tasks');
+const menuEnd=menuSource.indexOf('    // Visibility is recalculated AFTER relocation',menuStart);
+assert.ok(menuStart>=0&&menuEnd>menuStart);
+const menuCode=menuSource.slice(menuStart,menuEnd);
 const nav=slice(staff,'<aside class="sidebar"','</aside>');
 const intro=slice(staff,'<header class="ax-workspace-intro"','</header>');
 const scanner=fullSection(staff,'studentScannerCard');
@@ -31,6 +36,13 @@ const roles={SCHOOL_ADMIN:'School operations',DEPARTMENT_HEAD:'Department priori
     await page.evaluate(sheets=>{for(const css of sheets){const node=document.createElement('style');node.textContent=css;document.head.append(node);}},styles(staff).map(css=>css.replace(/@import\s+[^;]+;/g,'')));
     await page.evaluate(role=>{document.querySelector('#sidebar').classList.add('open');document.querySelector('.portal-layout').removeAttribute('data-attendigo-role');window.attendigoStaffIdentity=Promise.resolve({role});},role);
     const hiddenBefore=await page.locator('#sidebar [hidden]').count();
+    if(role!=='GATE_KEEPER'){
+     const before=await page.locator('#sidebar .nav-item').evaluateAll(nodes=>nodes.map(n=>[n.id,n.getAttribute('href'),n.hidden]).sort());
+     await page.addScriptTag({content:'(()=>{const $=id=>document.getElementById(id);const teacher='+String(role==='TEACHER')+',departmentHead='+String(role==='DEPARTMENT_HEAD')+',admin='+String(role==='SCHOOL_ADMIN')+';'+menuCode+'})();'});
+     const first=await page.locator('#sidebar .side-nav > *').evaluateAll(nodes=>nodes.slice(0,3).map(n=>n.id));
+     assert.deepEqual(first,role==='SCHOOL_ADMIN'?['dashboardNav','attendanceManagementNavGroup','academicNavigationGroup']:role==='DEPARTMENT_HEAD'?['dashboardNav','studentRecordsNavGroup','operationsNavGroup']:['dashboardNav','studentRecordsNavGroup','personalAttendanceNavGroup']);
+     assert.deepEqual(await page.locator('#sidebar .nav-item').evaluateAll(nodes=>nodes.map(n=>[n.id,n.getAttribute('href'),n.hidden]).sort()),before,'menu reordering must preserve every route and hidden state');
+    }
     await page.addScriptTag({content:js});
     await page.evaluate(role=>{document.querySelector('.portal-layout').setAttribute('data-attendigo-role',role);document.dispatchEvent(new Event('attendigo:portal-ready'));},role);
     await page.waitForFunction(title=>document.getElementById('axStaffDashboardTitle').textContent===title,roles[role]);
