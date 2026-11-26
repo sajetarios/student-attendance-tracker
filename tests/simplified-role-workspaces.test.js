@@ -109,7 +109,7 @@ test('Compact menus survive feature-entitlement refresh without repeating DOM mo
   assert.match(script, /monitorRoleNavigation\(role\)/);
   assert.match(script, /record\.target\.matches\?\.\('\.side-nav,\.nav-submenu'\)/);
   assert.match(script, /record\.attributeName === 'hidden'/);
-  assert.match(script, /ordered\.some\(\(el, index\) => el !== current\[index\]\)/);
+  assert.match(script, /next\.some\(\(node, index\) => node !== existing\[index\]\)\) next\.forEach\(node => container\.append\(node\)\)/);
   assert.match(script, /move\('schoolSmsAccessNotice', 'settings'\)/);
   assert.match(css, /details\.simple-workspace-details:not\(\[open\]\) > \.simple-workspace-details-body/);
 });
