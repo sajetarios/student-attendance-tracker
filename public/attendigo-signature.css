@@ -550,3 +550,8 @@ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardVi
    bottom:-16px!important;top:auto!important;background:radial-gradient(circle at 0 100%,transparent 15.5px,var(--ax-connected-canvas) 16px)!important;
  }
 }
+
+/* Keep the connected active-tab surface opaque throughout navigation changes. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) {transition:none!important;}
+}
