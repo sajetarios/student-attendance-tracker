@@ -41,7 +41,7 @@ const roles={SCHOOL_ADMIN:'School operations',DEPARTMENT_HEAD:'Department priori
     if(id)assert.equal(await page.locator('#axStaffDashboardIntro + *').getAttribute('id'),id);
     if(role==='GATE_KEEPER')assert.equal(await page.locator('#studentScannerCard').getAttribute('data-ax-gate-workspace'),'true');
     const result=await page.locator('#axStaffDashboardIntro').evaluate(e=>({height:e.getBoundingClientRect().height,width:e.getBoundingClientRect().width,scroll:e.scrollWidth,client:e.clientWidth}));
-    assert.ok(result.height>0&&result.width>0&&result.scroll<=result.client+1,'workspace intro overflow '+role+' '+width);
+    assert.ok(result.height>0&&result.width>0&&result.scroll<=result.client+1,'workspace intro overflow '+role+' '+width+' '+JSON.stringify(result));
    }finally{await page.close();}
   }
   for(const [name,selector] of [['principal.html','.principal-navigation'],['student-portal.html','.student-header'],['parent-portal.html','.parent-head']]){
