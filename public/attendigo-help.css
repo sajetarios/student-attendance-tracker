@@ -198,32 +198,32 @@ body.theme-dark .attendigo-help-panel :is(textarea,select,.attendigo-help-chip){
   order:999!important;flex:0 0 auto;margin-top:auto;
   display:flex;flex-direction:column;gap:7px;
   padding:12px 7px calc(12px + env(safe-area-inset-bottom,0px));
-  background:var(--sidebar,#152739);
-  border-top:1px solid rgba(151,177,200,.28);
+  background:transparent;
+  border-top:1px solid color-mix(in srgb,var(--ap-nav-ink,var(--side-ink,#fff)) 24%,transparent);
 }
 #sidebar.sidebar .attendigo-help-dock-title{
   display:block;margin:0 9px;font-size:10px;font-weight:800;
-  color:var(--side-muted,#a5b7c5);letter-spacing:.09em;
+  color:var(--ap-nav-ink,var(--side-ink,#fff));letter-spacing:.09em;
 }
 #sidebar.sidebar .attendigo-help-dock > .attendigo-help-launcher{
   position:relative;inset:auto;z-index:auto;display:flex;flex-direction:row;
   align-items:center;justify-content:flex-start;
   gap:9px;width:100%;max-width:100%;min-height:53px;margin:0;
-  padding:4px 12px 4px 7px;border:1px solid rgba(82,180,225,.45);
-  border-radius:12px;background:linear-gradient(115deg,#105b85,#117fa7);
-  color:#fff;font-family:inherit;font-size:13px;font-weight:750;
+  padding:4px 12px 4px 7px;border:1px solid color-mix(in srgb,var(--ap-nav-ink,var(--side-ink,#fff)) 35%,transparent);
+  border-radius:12px;background:transparent;
+  color:var(--ap-nav-ink,var(--side-ink,#fff));font-family:inherit;font-size:16px;font-weight:700;
   text-align:left;white-space:nowrap;box-shadow:none;
   transition:background-color .15s ease;
 }
 #sidebar.sidebar .attendigo-help-dock > .attendigo-help-launcher:hover{
-  background:#0c628e;transform:none;
+  background:transparent;border-color:currentColor;transform:none;
 }
 #sidebar.sidebar .attendigo-help-dock > .attendigo-help-launcher .attendigo-help-label{
   display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
 }
 #sidebar.sidebar .attendigo-help-robot{width:43px;min-width:43px;flex:0 0 43px}
 #sidebar.sidebar .attendigo-help-dock > .attendigo-help-launcher[aria-expanded="true"]{
-  outline:2px solid #43cbec;outline-offset:1px;
+  outline:2px solid currentColor;outline-offset:1px;
 }
 /* Collapsed desktop rail: only the robot remains, with the accessible name
    and tool-tip still attached to its real button. */
@@ -248,4 +248,12 @@ html body .portal-layout.sidebar-collapsed #sidebar.sidebar .attendigo-help-dock
   #sidebar.sidebar .attendigo-help-dock{padding-bottom:calc(13px + env(safe-area-inset-bottom,0px))}
   .attendigo-help-panel{top:70px;bottom:auto;right:8px;width:calc(100vw - 16px);
     max-height:calc(100dvh - 81px)}
+}
+
+/* Sidebar help shares the actual navigation surface, not the legacy --sidebar color. */
+@media screen {
+ html body.portal-page #sidebar#sidebar.sidebar .attendigo-help-dock {background:transparent!important;background-image:none!important;box-shadow:none!important;}
+ html body.portal-page #sidebar#sidebar.sidebar .attendigo-help-dock-title {color:var(--ap-nav-ink,var(--side-ink,#fff))!important;}
+ html body.portal-page #sidebar#sidebar.sidebar .attendigo-help-dock > .attendigo-help-launcher {background:transparent!important;background-image:none!important;color:var(--ap-nav-ink,var(--side-ink,#fff))!important;box-shadow:none!important;}
+ html body.portal-page #sidebar#sidebar.sidebar .attendigo-help-dock > .attendigo-help-launcher:focus-visible {outline:2px solid currentColor;outline-offset:2px;}
 }
