@@ -1164,7 +1164,8 @@
    document.body.classList.toggle('principal-presentation',enabled);
    if(presentation){
     presentation.setAttribute('aria-pressed',String(enabled));
-    presentation.textContent=enabled?'Normal view':'Presentation mode';
+    presentation.textContent=enabled?'Exit':'Present';
+    presentation.setAttribute('aria-label',enabled?'Exit presentation mode':'Enter presentation mode');
     presentation.title=enabled?'Exit presentation mode':'Enter larger-text presentation mode';
    }
   }

@@ -121,7 +121,7 @@ test('Teacher Recognition redesign keeps evidence source contracts and responsiv
  assert.match(js,/count\.dataset\.state=award\.entries\.length\?'active':'empty'/);
  assert.match(routes,/watchNominees/);
  assert.match(routes,/earlyArrivals/);
- assert.match(html,/principal-dashboard\.css\?v=17/);
+ assert.match(html,/principal-dashboard\.css\?v=18/);
  const principalJsVersion=html.match(/principal-dashboard\.js\?v=(\d+)/);
  assert.ok(principalJsVersion && Number(principalJsVersion[1])>=13,'principal JS revision must not regress');
 });
@@ -137,7 +137,7 @@ test('Principal executive workspace puts decisions before recognition and retain
   assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
  assert.ok(css.includes('min-width:1180px'));
  assert.ok(css.includes('max-width:650px'));
- assert.ok(sw.includes('principal-dashboard.css?v=17'));
+ assert.ok(sw.includes('principal-dashboard.css?v=18'));
 });
 
 test('Principal executive icons are locally rendered, accessible and cache-versioned',()=>{
@@ -148,6 +148,22 @@ test('Principal executive icons are locally rendered, accessible and cache-versi
  assert.ok(js.includes("principalIcon('briefing-item-icon',item.icon)"));
  assert.ok(js.includes("principalIcon('mark',"));
  assert.ok(css.includes('.principal-action-icon'));
- assert.ok(sw.includes('principal-dashboard.css?v=17'));
- assert.ok(sw.includes('principal-dashboard.js?v=25'));
+ assert.ok(sw.includes('principal-dashboard.css?v=18'));
+ assert.ok(sw.includes('principal-dashboard.js?v=26'));
+});
+
+test('Principal compact header preserves one control per action and accessible mobile labels',()=>{
+ const html=read('public/principal.html'),css=read('public/principal-dashboard.css'),js=read('public/principal-dashboard.js'),sw=read('public/sw.js');
+ for(const id of ['themePreference','presentationToggle','signOut','roleBadge'])
+  assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
+ assert.ok(html.includes('aria-label="Dashboard appearance"'));
+ assert.ok(html.includes('aria-label="Sign out"'));
+ assert.ok(html.includes('aria-label="Enter presentation mode"'));
+ assert.ok(js.includes("presentation.setAttribute('aria-label',enabled?'Exit presentation mode':'Enter presentation mode')"));
+ assert.ok(css.includes('grid-template-columns:44px minmax(0,1fr) minmax(0,1fr) 44px'));
+ assert.ok(css.includes('.top-actions > .universal-notifications{grid-column:1;grid-row:1}'));
+ assert.ok(css.includes('min-height:44px;height:44px'));
+ assert.ok(css.includes('.shell > .topbar #signOut > span{display:none}'));
+ assert.ok(css.includes('.shell > .topbar .universal-panel{position:fixed'));
+ assert.ok(sw.includes('attendigo-v468-principal-compact-header'));
 });

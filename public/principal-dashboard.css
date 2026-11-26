@@ -1063,3 +1063,45 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
 #main #refreshDashboard>span{font-size:inherit;margin:0}
 #main .recognition-empty-icon .principal-action-icon{inline-size:24px;block-size:24px}
 @media(max-width:650px){#main .principal-quick-links button:has(.principal-action-icon){gap:6px}#main .principal-quick-links .principal-action-icon{inline-size:18px;block-size:18px}}
+
+/* Principal header: one desktop row, two deliberate mobile rows.
+   Keep the injected notification panel outside the compact button sizing. */
+@media screen {
+ .shell > .topbar{align-items:center;min-width:0;gap:12px}
+ .shell > .topbar > .brand{flex:0 1 auto;min-width:0}
+ .shell > .topbar > .brand small{font-size:16px;line-height:1.25;white-space:normal}
+ .shell > .topbar > .top-actions{flex:0 1 auto;min-width:0;align-items:center;gap:8px;flex-wrap:nowrap}
+ .shell > .topbar #roleBadge{display:none}
+ .shell > .topbar .top-actions > .theme-picker{min-width:0;gap:6px;order:0}
+ .shell > .topbar .principal-theme-label{font-size:16px;white-space:nowrap}
+ .shell > .topbar .top-actions > :is(#presentationToggle,#signOut),
+ .shell > .topbar .theme-picker > select,
+ .shell > .topbar .universal-bell{
+  box-sizing:border-box;min-height:44px;height:44px;font-size:16px;line-height:1.2;
+  border-radius:11px;padding:8px 10px;white-space:nowrap!important;
+ }
+ .shell > .topbar .top-actions > #presentationToggle{order:0}
+ .shell > .topbar .top-actions > #signOut{order:0;margin:0;gap:6px}
+ .shell > .topbar .theme-picker > select{min-width:0;max-width:none;width:112px}
+ .shell > .topbar .universal-bell{width:44px;min-width:44px;padding:8px;background:var(--surface);color:var(--ink);border-color:var(--border)}
+ .shell > .topbar .universal-notifications{min-width:0}
+ .shell > .topbar :is(button,select,a):focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+}
+@media screen and (max-width:900px){
+ .shell > .topbar{display:grid;grid-template-columns:minmax(0,1fr);padding:10px 12px;gap:9px;min-height:0}
+ .shell > .topbar > .brand{width:fit-content;max-width:100%}
+ .shell > .topbar > .brand img{width:40px;height:40px;flex:0 0 40px}
+ .shell > .topbar > .brand strong{font-size:20px;line-height:1.15}
+ .shell > .topbar > .top-actions{display:grid;width:100%;grid-template-columns:44px minmax(0,1fr) minmax(0,1fr) 44px;gap:6px;align-items:center;justify-content:stretch}
+ .shell > .topbar .top-actions > .universal-notifications{grid-column:1;grid-row:1}
+ .shell > .topbar .top-actions > .theme-picker{grid-column:2;grid-row:1;display:block}
+ .shell > .topbar .theme-picker > select{width:100%;padding-inline:5px}
+ .shell > .topbar .principal-theme-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ .shell > .topbar .top-actions > #presentationToggle{grid-column:3;grid-row:1;width:100%;padding-inline:4px}
+ .shell > .topbar .top-actions > #signOut{grid-column:4;grid-row:1;width:44px;padding:0;justify-content:center}
+ .shell > .topbar #signOut > span{display:none}
+ .shell > .topbar .universal-panel{position:fixed;top:calc(114px + env(safe-area-inset-top,0px));left:12px;right:12px;width:auto;max-height:calc(100dvh - 138px - env(safe-area-inset-top,0px))}
+}
+@media screen and (min-width:901px) and (max-width:1100px){
+ .shell > .topbar .principal-theme-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+}
