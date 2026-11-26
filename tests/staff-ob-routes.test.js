@@ -184,3 +184,25 @@ test('Department Head requests enter Principal authorization directly; teachers 
   assert.equal(q.params[8],status);
  }
 });
+
+
+test('completion submission, department recommendation, and principal verification are separate role-scoped operations',async()=>{
+ const id='11111111-1111-4111-8111-111111111111',base='/api/staff-attendance/official-business/:id/';
+ const complete={completedAt:new Date(Date.now()-60000).toISOString(),reference:'Certified locator slip 25',reason:'Transaction extended'};
+ const teacher=fixture('TEACHER');
+ assert.equal((await teacher.call('POST',base+'complete',complete,{id})).code,201);
+ const submission=teacher.queries.find(x=>x.sql.includes('SET\n     completion_at'));
+ assert.ok(submission);assert.match(submission.sql,/o.school_id=\$1 AND o.request_id=\$2 AND o.staff_user_id=\$3/);
+ assert.equal(submission.params[4],'PENDING_HEAD');
+ assert.equal((await teacher.call('POST',base+'completion-decide',{decision:'APPROVE',evidenceVerified:true},{id})).code,403);
+ const head=fixture('DEPARTMENT_HEAD');
+ assert.equal((await head.call('POST',base+'completion-recommend',{decision:'RECOMMEND'},{id})).code,200);
+ assert.match(head.queries.find(x=>x.sql.includes('SET completion_status')).sql,/o.department_id=\$3 AND o.staff_user_id<>\$4/);
+ const principal=fixture('PRINCIPAL');
+ assert.equal((await principal.call('POST',base+'completion-decide',{decision:'APPROVE'},{id})).code,400);
+ assert.equal((await principal.call('POST',base+'completion-decide',{decision:'APPROVE',evidenceVerified:true},{id})).code,200);
+ const decision=principal.queries.find(x=>x.sql.includes('SET completion_status'));
+ assert.match(decision.sql,/o.school_id=\$1 AND o.request_id=\$2 AND o.staff_user_id<>\$3/);
+ assert.equal(decision.params[3],'VERIFIED');
+ for(const actor of [teacher,head,principal])assert.equal(actor.queries.some(x=>/INSERT INTO staff_attendance_events|DELETE FROM|SET ends_at/.test(x.sql)),false);
+});

@@ -97,6 +97,10 @@
       </div><div class="staff-lunch-controls" data-actions></div></div>
       <div class="staff-ob-coverage" hidden></div>`;
      const actions=item.querySelector('[data-actions]');
+     if(ob.completionStatus){
+      const detail=document.createElement('p');detail.textContent='OB completion: '+String(ob.completionStatus).replaceAll('_',' ')+' · '+date(ob.completionAt)+(ob.completionReference?' · Evidence: '+ob.completionReference:'')+(ob.completionReason?' · Reason: '+ob.completionReason:'')+(ob.completionHeadNote?' · Department note: '+ob.completionHeadNote:'')+(ob.completionDecisionNote?' · Decision: '+ob.completionDecisionNote:'');
+      item.querySelector('.section-toolbar > div').append(detail);
+     }
      function action(label,handler){
       const b=document.createElement('button');b.type='button';b.className='outline-button';
       b.textContent=label;b.addEventListener('click',handler);actions.append(b);
@@ -110,9 +114,10 @@
       const label=decision==='RECOMMEND'?'Recommend':decision==='APPROVE'?'Approve':'Reject';
       let saved=false;
       try{
-       const note=await window.AppDialog.prompt(label+' this Official Business request for '+(ob.staffName||'this staff member')+'? Add an optional decision note (maximum 1000 characters).','',{
+       const completion=kind==='completion-recommend';
+       const note=await window.AppDialog.prompt(label+' this '+(completion?'OB completion':'Official Business request')+' for '+(ob.staffName||'this staff member')+'? '+(completion&&decision==='REJECT'?'Provide a rejection reason.':'Add an optional decision note (maximum 1000 characters).'),'',{
         title:label+' Official Business request',label:'Decision note (optional)',inputType:'textarea',maxLength:1000,
-        validate:value=>value.length<=1000||'Use no more than 1000 characters.',confirmText:label,variant:decision==='REJECT'?'danger':undefined
+        validate:value=>value.length<=1000&&(!completion||decision!=='REJECT'||value.trim().length>0)||'Enter a valid note (maximum 1000 characters).',confirmText:label,variant:decision==='REJECT'?'danger':undefined
        });
        if(note===null)return;
        say('Saving decision…');
@@ -135,6 +140,30 @@
       actions.append(document.createTextNode('Attach supporting documents and secure handwritten signatures.'));
      }
      if(ob.status==='APPROVED'){
+      if(ob.staffUserId===user.userId&&(!ob.completionStatus||ob.completionStatus==='REJECTED')&&Date.parse(ob.startsAt)<=Date.now()){
+       action('Complete Official Business',async()=>{
+        if(busy||!window.AppDialog)return;
+        busy=true;let saved=false;
+        try{
+         const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(Math.min(Date.now(),Date.parse(ob.endsAt)))).map(p=>[p.type,p.value]));
+         const form=await window.AppDialog.form('Report the actual end of your official transaction. You do not need to record a historical gate logout.',[
+          {name:'date',label:'Actual completion date',inputType:'date',defaultValue:parts.year+'-'+parts.month+'-'+parts.day,required:true},
+          {name:'time',label:'Actual completion time (24-hour HH:MM)',defaultValue:parts.hour+':'+parts.minute,required:true,placeholder:'17:45',maxLength:5,validate:v=>/^([01]\d|2[0-3]):[0-5]\d$/.test(v)||'Enter time as HH:MM.'},
+          {name:'reason',label:'Reason if completion differs from approved end',inputType:'textarea',maxLength:1000},
+          {name:'reference',label:'Certified locator slip / certificate reference',required:true,maxLength:300,helpText:'Keep the original evidence for the Department Head and Principal.'}
+         ],{title:'Complete Official Business',confirmText:'Submit for verification'});
+         if(!form)return;
+         const completedAt=form.date+'T'+form.time+':00+08:00';
+         await call(api+'/'+encodeURIComponent(ob.requestId)+'/complete','POST',{completedAt,reason:form.reason,reference:form.reference});
+         saved=true;say('Completion submitted for verification. No gate or DTR record was changed.');document.dispatchEvent(new Event('attendigo:requests-changed'));
+        }catch(e){say(e.message,true);}finally{busy=false;}
+        if(saved)await refresh();
+       });
+      }
+      if(user.role==='DEPARTMENT_HEAD'&&ob.staffUserId!==user.userId&&ob.completionStatus==='PENDING_HEAD'&&['TEACHER','SCHOOL_ADMIN'].includes(ob.staffRole)){
+       action('Recommend OB completion',()=>decide('completion-recommend','RECOMMEND'));
+       action('Reject OB completion',()=>decide('completion-recommend','REJECT'));
+      }
       action('Affected classes',async()=>{
        const target=item.querySelector('.staff-ob-coverage');
        if(!target.hidden){target.hidden=true;return;}

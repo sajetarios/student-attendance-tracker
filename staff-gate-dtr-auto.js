@@ -33,6 +33,14 @@ async function autoRecordVerifiedGateDtr(client,{schoolId,staffUserId,gateEventI
   const date=new Date(schoolDate+'T12:00:00Z');
   if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==schoolDate)
     return {status:'REVIEW_REQUIRED',reason:'INVALID_DATE'};
+  // Defense in depth: a source timestamp must belong to this Manila school
+  // date. A next-day arrival can never fill an earlier day's PM_OUT.
+  const instant=new Date(occurredAt);
+  const parts=Number.isFinite(instant.getTime())?Object.fromEntries(new Intl.DateTimeFormat('en-CA',{
+    timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'
+  }).formatToParts(instant).map(p=>[p.type,p.value])):null;
+  if(!parts||`${parts.year}-${parts.month}-${parts.day}`!==schoolDate)
+    return {status:'REVIEW_REQUIRED',reason:'GATE_DATE_MISMATCH'};
   const weekday=date.getUTCDay();
 
   // Never silently reinterpret an already reviewed absence/excusal.
@@ -62,7 +70,7 @@ async function autoRecordVerifiedGateDtr(client,{schoolId,staffUserId,gateEventI
   const ob=await client.query(
     'SELECT 1 FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2 '+
     'AND status=\'APPROVED\' AND starts_at < (($3::date + INTERVAL \'1 day\') AT TIME ZONE \'Asia/Manila\') '+
-    'AND ends_at > ($3::date::timestamp AT TIME ZONE \'Asia/Manila\') LIMIT 1',
+    "AND (CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END) > ($3::date::timestamp AT TIME ZONE 'Asia/Manila') LIMIT 1",
     [schoolId,staffUserId,schoolDate]);
   if(ob.rowCount)return {status:'REVIEW_REQUIRED',reason:'APPROVED_OB_REQUIRES_REVIEW'};
 

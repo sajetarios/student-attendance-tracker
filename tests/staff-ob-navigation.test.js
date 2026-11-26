@@ -24,8 +24,8 @@ test('Admin has personal OB only; teachers and heads retain the dedicated module
 });
 test('OB endpoints registered and cached without changing student access',()=>{
  assert.match(server,/registerStaffObRoutes\(app, pool, \{ authenticateSchoolClient, requireSchoolRoles \}\)/);
- assert.match(portal,/staff-ob-ui\.js\?v=9/);
- assert.match(sw,/staff-ob-ui\.js\?v=9/);
+ assert.match(portal,/staff-ob-ui\.js\?v=10/);
+ assert.match(sw,/staff-ob-ui\.js\?v=10/);
  assert.match(portal,/staff-ob\.css\?v=1/);
  assert.match(sw,/staff-ob\.css\?v=1/);
  assert.match(js,/if \(role === 'GATE_KEEPER'\) return \['students'\]/);

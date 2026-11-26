@@ -33,10 +33,10 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
       FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND school_date=$3::date
        AND event_kind='DTR_SLOT' AND verification_status='VERIFIED'`,[schoolId,staffUserId,date]),
     pool.query(`SELECT to_char(starts_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS start,
-       to_char(ends_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS "end"
+       to_char((CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END) AT TIME ZONE 'Asia/Manila','HH24:MI') AS "end"
       FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
        AND starts_at<(($3::date+INTERVAL '1 day') AT TIME ZONE 'Asia/Manila')
-       AND ends_at>($3::date::timestamp AT TIME ZONE 'Asia/Manila')`,[schoolId,staffUserId,date]),
+       AND (CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END)>($3::date::timestamp AT TIME ZONE 'Asia/Manila')`,[schoolId,staffUserId,date]),
     pool.query(`SELECT exception_type FROM school_calendar_exceptions WHERE school_id=$1
        AND calendar_date=$2::date AND exception_type IN ('CLOSED','SHORTENED_DAY')`,[schoolId,date])
    ]);
@@ -256,11 +256,11 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
     [req.auth.schoolId,req.auth.userId,from,to]);
    const [ob,gate]=await Promise.all([
      pool.query(`SELECT request_id AS "requestId",purpose,destination,
-       starts_at AS "startsAt",ends_at AS "endsAt"
+       starts_at AS "startsAt",ends_at AS "endsAt",completion_status AS "completionStatus",completion_at AS "completionAt",(CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END) AS "coverageEndsAt"
        FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2
        AND status='APPROVED'
        AND starts_at<(($4::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Manila')
-       AND ends_at>($3::date::timestamp AT TIME ZONE 'Asia/Manila')
+       AND (CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END)>($3::date::timestamp AT TIME ZONE 'Asia/Manila')
        ORDER BY starts_at ASC`,[req.auth.schoolId,req.auth.userId,from,to]),
      pool.query(`SELECT "schoolDate","eventType","occurredAt" FROM (
        SELECT to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
@@ -268,12 +268,12 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
          occurred_at AS "occurredAt"
        FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2
          AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
-         AND school_date BETWEEN $3::date AND $4::date
+         AND school_date BETWEEN $3::date AND ($4::date + 1)
        UNION ALL
        SELECT to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
          event_type AS "eventType",occurred_at AS "occurredAt"
-       FROM teacher_gate_events WHERE school_id=$1 AND teacher_user_id=$2
-         AND school_date BETWEEN $3::date AND $4::date
+       FROM teacher_gate_events WHERE school_id=$1 AND teacher_user_id=$2 AND photo_verified=TRUE
+         AND school_date BETWEEN $3::date AND ($4::date + 1)
      ) gate_history ORDER BY "occurredAt" ASC`,[req.auth.schoolId,req.auth.userId,from,to])
    ]);
    const {buildObDtrRemarks}=require('./ob-dtr-remarks');
@@ -302,7 +302,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
     ?effectiveStaffSchedule(scheduleLookup.value,defaultsLookup.value)
     :{schedule:null,source:'UNAVAILABLE'};
    const intelligence=summarizePersonalAttendance({
-    from,to,dtrEvents:result.rows,gateEvents:gate.rows,approvedOb:ob.rows,
+    from,to,dtrEvents:result.rows,gateEvents:gate.rows,approvedOb:ob.rows.map(o=>({...o,endsAt:o.coverageEndsAt||o.endsAt})),
     schedule:effective.schedule,
     calendar:calendarLookup.status==='fulfilled'?calendarLookup.value.rows:null
    });
@@ -361,11 +361,11 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
     // OB is an authorization, not a clock punch. Attach approved intervals as
     // DTR remarks without filling any missing Form 48 arrival/departure slot.
     const [approvedOb,physicalGate,missingScans]=await Promise.all([
-      pool.query(`SELECT request_id AS "requestId",purpose,destination,starts_at AS "startsAt",ends_at AS "endsAt"
+      pool.query(`SELECT request_id AS "requestId",purpose,destination,starts_at AS "startsAt",ends_at AS "endsAt",completion_status AS "completionStatus",completion_at AS "completionAt",(CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END) AS "coverageEndsAt"
         FROM staff_official_business_requests
         WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
           AND starts_at < ($4::date::timestamp AT TIME ZONE 'Asia/Manila')
-          AND ends_at > ($3::date::timestamp AT TIME ZONE 'Asia/Manila')
+          AND (CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END) > ($3::date::timestamp AT TIME ZONE 'Asia/Manila')
         ORDER BY starts_at ASC`,[req.auth.schoolId,staffUserId,from,to]),
       pool.query(`SELECT "schoolDate","eventType","occurredAt" FROM (
         SELECT to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
@@ -374,13 +374,13 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
         FROM staff_attendance_events
         WHERE school_id=$1 AND staff_user_id=$2
           AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
-          AND school_date >= $3::date AND school_date < $4::date
+          AND school_date >= $3::date AND school_date <= $4::date
         UNION ALL
         SELECT to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
           event_type AS "eventType",occurred_at AS "occurredAt",event_id
         FROM teacher_gate_events
-        WHERE school_id=$1 AND teacher_user_id=$2
-          AND school_date >= $3::date AND school_date < $4::date
+        WHERE school_id=$1 AND teacher_user_id=$2 AND photo_verified=TRUE
+          AND school_date >= $3::date AND school_date <= $4::date
       ) actual_gate ORDER BY "occurredAt" ASC,event_id ASC`,
        [req.auth.schoolId,staffUserId,from,to]),
       pool.query("SELECT to_char(school_date,'YYYY-MM-DD') AS date,slot,status,evidence_reference AS reference,"+
