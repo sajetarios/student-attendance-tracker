@@ -306,17 +306,18 @@ const standalonePrintCss = [
     a.status==='MISSING_REVIEW'||a.status==='CONFIRMED_ABSENT'||a.status==='EXCUSED'||
     a.status==='APPROVED_OB_REVIEW'||a.status==='LEAVE_REVIEW'||
     a.status==='INCOMPLETE_DTR'||a.status==='TIME_SLOT_REVIEW'||a.status==='LEAVE_PUNCH_CONFLICT'||
-    a.status==='SICK_LEAVE_PENDING'||a.status==='SICK_LEAVE_REVIEW_CONFLICT');
+    a.status==='SICK_LEAVE_PENDING'||a.status==='SICK_LEAVE_REVIEW_CONFLICT'||a.status==='OB_LEAVE_CONFLICT');
    reviewHost.hidden=!list.length;
    reviewHost.innerHTML=list.length?'<h4>Review missing workdays</h4>'+
     '<p>Absence is counted only after School Admin confirmation. For leave or approved OB, choose Excused.</p>'+
     '<div class="form48-review-list">'+list.map(item=>{
      const selected=state.review?.dayReviews?.[item.date]||'PENDING';
      const recordReview=['INCOMPLETE_DTR','TIME_SLOT_REVIEW','LEAVE_PUNCH_CONFLICT',
-      'SICK_LEAVE_PENDING','SICK_LEAVE_REVIEW_CONFLICT'].includes(item.status);
+      'SICK_LEAVE_PENDING','SICK_LEAVE_REVIEW_CONFLICT','OB_LEAVE_CONFLICT'].includes(item.status);
      if(recordReview)return '<label>'+esc(item.date)+' · '+
       (item.status==='TIME_SLOT_REVIEW'?'Recorded scan outside prescribed time slot':
        item.status==='LEAVE_PUNCH_CONFLICT'?'Approved leave overlaps verified punches':
+       item.status==='OB_LEAVE_CONFLICT'?'Approved OB and leave overlap; reconcile authorizations':
        item.status==='SICK_LEAVE_PENDING'?'Sick leave filed; official approval and HR review pending':
        item.status==='SICK_LEAVE_REVIEW_CONFLICT'?'Sick leave filing overlaps a confirmed absence: reconcile with HR':
        'Incomplete verified DTR punches')+
