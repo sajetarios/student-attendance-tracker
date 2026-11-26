@@ -12,11 +12,11 @@
 try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<link rel="stylesheet" href="/principal-dashboard.css?v=17">
+<link rel="stylesheet" href="/principal-dashboard.css?v=18">
 <script src="/locator-slip-ui.js?v=5" defer></script>
 <link rel="stylesheet" href="/leave-approval-inbox.css?v=3">
 <script src="/leave-approval-inbox.js?v=3" defer></script>
-<script src="/principal-dashboard.js?v=25" defer></script>
+<script src="/principal-dashboard.js?v=26" defer></script>
 <script src="/staff-precise-location.js?v=1" defer></script>
 <script src="/principal-trusted-campus.js?v=4" defer></script>
 <link rel="stylesheet" href="/campus-location-ui.css?v=1">
@@ -41,7 +41,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    <span><strong>Attendigo</strong><small>Principal Workspace</small></span>
   </a>
   <div class="top-actions">
-   <label class="theme-picker" for="themePreference">Appearance
+   <label class="theme-picker" for="themePreference"><span class="principal-theme-label">Appearance</span>
     <select id="themePreference" aria-label="Dashboard appearance">
      <option value="light">☀ Light</option>
      <option value="dark">☾ Dark</option>
@@ -49,9 +49,9 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     </select>
    </label>
    <span id="roleBadge" class="role-badge">Principal workspace</span>
-   <button type="button" id="presentationToggle" class="quiet-button" aria-pressed="false" title="Enter larger-text presentation mode">Presentation mode</button>
+   <button type="button" id="presentationToggle" class="quiet-button" aria-pressed="false" title="Enter larger-text presentation mode" aria-label="Enter presentation mode">Present</button>
    
-   <button type="button" id="signOut" class="quiet-button"><svg class="principal-action-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 17l5-5-5-5 M15 12H3 M14 4h6v16h-6"/></svg><span>Sign out</span></button>
+   <button type="button" id="signOut" class="quiet-button" aria-label="Sign out" title="Sign out"><svg class="principal-action-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 17l5-5-5-5 M15 12H3 M14 4h6v16h-6"/></svg><span>Sign out</span></button>
   </div>
  </header>
  <main id="main">
