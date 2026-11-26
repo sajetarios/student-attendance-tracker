@@ -12,6 +12,10 @@
     return Math.abs(n)%palettes.length;
   }
   function clock(value) {return String(value||'—').slice(0,5);}
+  // Regular slots are display anchors only; the effective time remains authoritative.
+  function slotKey(entry) {return clock(entry.regularStartTime||entry.startTime)+'|'+clock(entry.regularEndTime||entry.endTime);}
+  function timeChanged(entry) {return !!entry.adjustment && !entry.cancelled && !!entry.regularStartTime && !!entry.regularEndTime && slotKey(entry)!==clock(entry.startTime)+'|'+clock(entry.endTime);}
+  function adjustmentStatus(entry,today) {return entry.date<today?'Past':entry.date===today?'Active':'Upcoming';}
   function label(entry) {return entry.subjectName||entry.periodName||'Class';}
   function asLongDate(value) {
     const time=new Date(value+'T12:00:00Z');
@@ -101,11 +105,12 @@
     if(lastTrigger && lastTrigger!==button)lastTrigger.setAttribute('aria-expanded','false');
     pinned=!!persist;lastTrigger=button;current={entry,config};
     button.setAttribute('aria-expanded','true');
-    const tag=entry.cancelled?'Cancelled':entry.adjustment?(entry.adjustment.type==='SUBSTITUTE'?'Teacher cover':entry.adjustment.type==='REPLACE'?'Subject replacement':'Temporary change'):'Regular class';
+    const tag=entry.cancelled?'Cancelled':entry.adjustment?(entry.adjustment.type==='SUBSTITUTE'?'Teacher cover':entry.adjustment.type==='REPLACE'?'Subject replacement':adjustmentStatus(entry,config.today)+' temporary adjustment'):'Regular class';
     const items=[
       ['Teacher',entry.cancelled?'No class today':entry.assignedTeacherName||'Not assigned'],
       ['Class',String(entry.gradeLevel||'—')+' · '+String(entry.section||'All sections')],
-      ['Time',clock(entry.startTime)+'–'+clock(entry.endTime)],
+      [timeChanged(entry)?'Adjusted time':'Time',clock(entry.startTime)+'–'+clock(entry.endTime)],
+      ...(timeChanged(entry)?[['Regular time',clock(entry.regularStartTime)+'–'+clock(entry.regularEndTime)]]:[]),
       ['Room',entry.classroom||'Not set'],
       ['Weekdays',(entry.weekdays||[]).map(day=>daysOfWeek[Number(day)]?.slice(0,3)).filter(Boolean).join(', ')||daysOfWeek[entry.dayIndex]],
       ['Schedule block',entry.periodName||'Not specified'],
@@ -120,7 +125,7 @@
         ['Your role',labels.join(' + ')||'Assigned teaching timetable'],
         ['Period type',entry.isAdvisoryActivity?'Advisory / Homeroom':'Regular subject period']);
     }
-    const detailIcons={Teacher:'user',Class:'users','Your role':'book','Period type':'calendar',Time:'clock',Room:'pin',Weekdays:'calendar','Schedule block':'book',Date:'calendar'};
+    const detailIcons={Teacher:'user',Class:'users','Your role':'book','Period type':'calendar',Time:'clock','Adjusted time':'clock','Regular time':'clock',Room:'pin',Weekdays:'calendar','Schedule block':'book',Date:'calendar'};
     const rows=items.map(item=>'<div class="tt-detail-row"><dt><span data-ui-icon="'+detailIcons[item[0]]+'"></span>'+escape(item[0])+'</dt><dd>'+escape(item[1])+'</dd></div>').join('');
     const extra=entry.adjustment ? '<div class="tt-detail-change"><strong>'+escape(tag)+'</strong><span>'+
       escape((entry.adjustment.reason||'').replaceAll('_',' '))+
@@ -154,7 +159,7 @@
     if(gridController)gridController.abort();
     gridController=new AbortController();
     const entries=config.entries||[],days=config.days||[],weekdayDates=config.weekdayDates||{};
-    const keys=[...new Set(entries.map(e=>clock(e.startTime)+'|'+clock(e.endTime)))].sort((a,b)=>{
+    const keys=[...new Set(entries.map(slotKey))].sort((a,b)=>{
       const [s1,e1]=a.split('|'),[s2,e2]=b.split('|');
       return s1.localeCompare(s2)||e1.localeCompare(e2);
     });
@@ -163,16 +168,17 @@
       return;
     }
     const indexed=new Map();entries.forEach((e,i)=>{
-      const id=e.dayIndex+'|'+clock(e.startTime)+'|'+clock(e.endTime);
+      const id=e.dayIndex+'|'+slotKey(e);
       if(!indexed.has(id))indexed.set(id,[]);
       indexed.get(id).push({...e,index:i});
     });
-    const heading=days.map(day=>'<th scope="col"><span>'+escape(daysOfWeek[day].slice(0,3))+'</span><small>'+escape((weekdayDates[day]||'').slice(5))+'</small></th>').join('');
+    const isToday=day=>!!config.today&&weekdayDates[day]===config.today;
+    const heading=days.map(day=>'<th scope="col"'+(isToday(day)?' class="tt-today" aria-current="date"':'')+'><span>'+escape(daysOfWeek[day].slice(0,3))+'</span><small>'+escape((weekdayDates[day]||'').slice(5))+(isToday(day)?' · Today':'')+'</small></th>').join('');
     const rows=keys.map(key=>{
       const [start,end]=key.split('|');
       return '<tr><th scope="row" class="tt-time"><strong>'+escape(start)+'</strong><span>'+escape(end)+'</span></th>'+days.map(day=>{
         const matches=indexed.get(day+'|'+key)||[];
-        return '<td class="tt-class-cell">'+(matches.length?matches.map(e=>{
+        return '<td class="tt-class-cell'+(isToday(day)?' tt-today-cell':'')+'">'+(matches.length?matches.map(e=>{
           const kind=e.cancelled?'cancelled':e.adjustment?'adjusted':
             e.teacherScheduleView?(e.isMySubjectClass&&e.isMyAdvisorySection?'teacher-both':
               e.isMyAdvisorySection?'my-advisory':e.isMySubjectClass?'teacher-class':'teacher-related'):
@@ -198,17 +204,18 @@
             '<span class="tt-subject-name">'+escape(subject)+'</span>'+
             '<span class="tt-subject-section">'+escape(section)+'</span>'+
             roleMarkup+
-            (e.adjustment?'<span class="tt-change-dot" aria-hidden="true">•</span>':'')+'</button>';
+            (e.adjustment?'<span class="tt-adjustment-caption">'+escape(adjustmentStatus(e,config.today)+' change')+'</span>':'')+
+            (timeChanged(e)?'<span class="tt-adjustment-time">'+escape(clock(e.startTime)+'–'+clock(e.endTime))+'</span>':'')+'</button>';
         }).join(''):'<span class="tt-no-class" aria-label="No class">—</span>')+'</td>';
       }).join('')+'</tr>';
     }).join('');
     host.classList.add('tt-grid-host');
-    host.innerHTML='<div class="tt-grid-scroll" role="region" aria-label="Weekly timetable, scroll horizontally" tabindex="0"><table class="tt-grid" style="--tt-day-count:'+days.length+'" aria-label="Weekly class timetable"><thead><tr><th scope="col" class="tt-time-heading">Time</th>'+heading+
+    host.innerHTML='<div class="tt-grid-scroll" role="region" aria-label="Weekly timetable, scroll horizontally" tabindex="0"><table class="tt-grid" style="--tt-day-count:'+days.length+'" aria-label="Weekly class timetable"><thead><tr><th scope="col" class="tt-time-heading">Regular time</th>'+heading+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
       '<div class="tt-grid-legend">'+(entries.some(e=>e.teacherScheduleView) ?
       '<span><i class="tt-legend-both"></i>My advisory class (also teaches)</span><span><i class="tt-legend-teaching"></i>My subject class</span><span><i class="tt-legend-advisory"></i>Advisory section only</span>' :
       '<span><i class="tt-legend-class"></i>Regular class</span>')+
-      '<span><i class="tt-legend-adjusted"></i>Temporary change</span><span><i class="tt-legend-cancelled"></i>Cancelled</span>'+
+      '<span><i class="tt-legend-adjusted"></i>Date-specific change (card shows actual time)</span><span><i class="tt-legend-cancelled"></i>Cancelled</span>'+
       '<span class="tt-grid-hint">Tap or click a subject for details and authorized actions</span></div>';
     // Bind once per render; clearing the board also clears previous handlers.
     host.addEventListener('click',e=>{
