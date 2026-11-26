@@ -333,7 +333,10 @@ async function checkDashboardMetricIcons(engine,engineName){
     ['principal.html','<div id="main"><div id="overviewPanel"><div class="metric-grid">'+principal+principal+principal+principal+'</div></div></div>',attrs,'',['.metric-card']]
    ];
    for(const [name,markup,htmlAttrs,bodyClasses,selectors] of fixture){
-    await setup(page,name,markup,htmlAttrs,bodyClasses);
+    await page.setContent('<!doctype html><html '+htmlAttrs+'><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body class="'+bodyClasses+'"><main class="content-wrap" style="width:100%;max-width:100%;margin:0;box-sizing:border-box;padding:12px">'+markup+'</main></body></html>');
+    // Same local stylesheet injection as the existing cross-engine Principal fixtures:
+    // do not depend on external font imports resolving on WebKit's synthetic origin.
+    await page.evaluate(sheets=>{for(const css of sheets){const node=document.createElement('style');node.textContent=css;document.head.append(node);}},styles(name).map(css=>css.replace(/@import\s+[^;]+;/g,'')));
     for(const selector of selectors){
      const results=await page.locator(selector).evaluateAll(cards=>cards.map(card=>{
       const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
