@@ -368,3 +368,14 @@ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardVi
  html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric>.teacher-v3-metric-icon {color:var(--ap-tile-ink)!important;background:color-mix(in srgb,var(--ap-tile-ink) 12%,transparent)!important;}
  #main #overviewPanel .metric-grid>.metric-card .metric-icon {background:color-mix(in srgb,var(--ap-tile-ink) 12%,transparent)!important;}
 }
+
+@media screen {
+ /* Override legacy link/icon coloring together, including expanded nav. */
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]),
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) :is(.nav-icon,.nav-label,svg) {
+   color:var(--ax-cutout-ink)!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) .nav-icon svg {stroke:currentColor!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) .nav-icon svg [fill]:not([fill="none"]) {fill:currentColor!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .ax-workspace-intro:not(#dashboardView[data-ax-teaching-day] .ax-workspace-intro) :is(h2,p,.ax-workspace-kicker) {color:var(--ap-primary-ink)!important;}
+}
