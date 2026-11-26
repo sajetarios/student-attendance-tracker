@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v448-teaching-workspace";
+const CACHE = "attendigo-v449-adaptive-electric";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -7,7 +7,8 @@ const OFFLINE_REQUIRED = [
   ...OFFLINE_TOOL_PAGES,
   "/attendigo-experience.css?v=4",
   "/attendigo-role-workspaces.js?v=5",
-  "/attendigo-signature.css?v=6",
+  "/attendigo-signature.css?v=7",
+  "/attendigo-adaptive-palette.js?v=1",
   "/school-weather-widget.js?v=4",
   "/attendigo-layout-density.css?v=1",
   "/app-dialog.css?v=2",
@@ -200,7 +201,7 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=17",
   "/login-routing.js",
-  "/principal-dashboard.js?v=24",
+  "/principal-dashboard.js?v=25",
   "/principal-trusted-campus.js?v=4",
   "/campus-location-ui.css?v=1",
   "/principal-dashboard.css?v=17",

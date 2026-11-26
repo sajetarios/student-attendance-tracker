@@ -91,6 +91,7 @@
   if(previous&&known.has(previous))select.value=previous;
  }
  function applyMetrics(data){
+  window.AttendigoPalette?.apply(data.school?.brandColor);
   const m=data.metrics||{},en=data.enrollment||{};
   $('schoolTitle').textContent=data.school?.schoolName||'School leadership dashboard';
   $('schoolCode').textContent='School '+(data.school?.schoolCode||'');

@@ -32,7 +32,7 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
   const values=[req.auth.schoolId,schoolDate,departmentId];
   try {
    const [school,depts]=await Promise.all([
-    pool.query(`SELECT school_name AS "schoolName",school_code AS "schoolCode"
+    pool.query(`SELECT school_name AS "schoolName",school_code AS "schoolCode",brand_color AS "brandColor"
      FROM schools WHERE school_id=$1 AND active=TRUE`,[req.auth.schoolId]),
     pool.query(`SELECT department_id AS "departmentId",department_name AS name
      FROM school_departments WHERE school_id=$1 AND active=TRUE

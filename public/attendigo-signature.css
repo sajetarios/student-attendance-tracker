@@ -310,3 +310,61 @@
  #dashboardView[data-ax-teaching-day] #axStaffDashboardIntro {grid-template-columns:minmax(0,1fr)!important;}
  .ax-teaching-date {grid-row:auto;grid-column:1;text-align:start;}
 }
+
+/* V5.4 Electric Violet: dynamic decorative color tokens; official status
+   indicators and heat classifications deliberately remain independent. */
+@media screen {
+ :root {--ap-nav:#4f2dcc;--ap-nav-ink:#fff;--ap-primary:#4f2dcc;--ap-primary-ink:#fff;--ap-card-1:#6c4dff;--ap-ink-1:#fff;--ap-card-2:#2ccb8f;--ap-ink-2:#101827;--ap-card-3:#4da3ff;--ap-ink-3:#101827;--ap-card-4:#8bcf3f;--ap-ink-4:#101827;--ap-tint:#f5f3ff;--ap-dark-tint:#211b35;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar {
+   --side-ink:var(--ap-nav-ink)!important;--side-muted:var(--ap-nav-ink)!important;
+   --side-border:color-mix(in srgb,var(--ap-nav-ink) 26%,transparent)!important;
+   --side-hover:color-mix(in srgb,var(--ap-nav-ink) 12%,transparent)!important;
+   --side-focus:var(--ap-nav-ink)!important;--side-selected-ink:var(--ap-nav-ink)!important;
+   background:var(--ap-nav)!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) {background:var(--ap-nav)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar .nav-item.active:not([hidden]) {--ax-cutout-ink:var(--ag-reading,var(--ink,#19304a));}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar .sidebar-brand span {opacity:1!important;}
+ #main > .principal-navigation {--ax-principal-nav:var(--ap-nav);--ax-principal-ink:var(--ap-nav-ink);}
+ html body.portal-page .portal-layout[data-attendigo-role] .ax-workspace-intro:not(#dashboardView[data-ax-teaching-day] .ax-workspace-intro) {background:var(--ap-primary)!important;color:var(--ap-primary-ink)!important;}
+ body.portal-page :is(.student-header,.parent-head) {background:var(--ap-primary)!important;color:var(--ap-primary-ink)!important;}
+ body.portal-page :is(.student-header,.parent-head) :is(h1,p,.eyebrow) {color:var(--ap-primary-ink)!important;}
+ .ax-signature-dock:not([hidden]) {background:var(--ap-nav);color:var(--ap-nav-ink);}
+ .ax-signature-dock button:not([aria-current="page"]) {color:var(--ap-nav-ink);}
+ .ax-progress-ring {background:conic-gradient(var(--ap-card-2) var(--ax-progress),var(--ax-border,#d7e0ea) 0);}
+ #dashboardView[data-ax-teaching-day]>.teacher-v3-hero .teacher-v3-schedule {background:var(--ap-primary)!important;color:var(--ap-primary-ink)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(1),
+ html body.portal-page .portal-layout[data-attendigo-role] #dashboardView :is(.admin-command-metric,.dh-command-metric):nth-child(4n+1),
+ #main #overviewPanel .metric-grid>.metric-card:nth-child(4n+1),
+ body.portal-page .student-summary-grid>.student-summary-item:nth-child(4n+1),
+ body.portal-page .parent-summary-grid>.student-profile-item:nth-child(4n+1) {
+  --ap-tile-ink:var(--ap-ink-1);background:linear-gradient(145deg,var(--ap-card-1),var(--ap-card-1))!important;color:var(--ap-tile-ink)!important;border-color:transparent!important;
+ }
+html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(2),
+ html body.portal-page .portal-layout[data-attendigo-role] #dashboardView :is(.admin-command-metric,.dh-command-metric):nth-child(4n+2),
+ #main #overviewPanel .metric-grid>.metric-card:nth-child(4n+2),
+ body.portal-page .student-summary-grid>.student-summary-item:nth-child(4n+2),
+ body.portal-page .parent-summary-grid>.student-profile-item:nth-child(4n+2) {
+  --ap-tile-ink:var(--ap-ink-2);background:linear-gradient(145deg,var(--ap-card-2),var(--ap-card-2))!important;color:var(--ap-tile-ink)!important;border-color:transparent!important;
+ }
+html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(3),
+ html body.portal-page .portal-layout[data-attendigo-role] #dashboardView :is(.admin-command-metric,.dh-command-metric):nth-child(4n+3),
+ #main #overviewPanel .metric-grid>.metric-card:nth-child(4n+3),
+ body.portal-page .student-summary-grid>.student-summary-item:nth-child(4n+3),
+ body.portal-page .parent-summary-grid>.student-profile-item:nth-child(4n+3) {
+  --ap-tile-ink:var(--ap-ink-3);background:linear-gradient(145deg,var(--ap-card-3),var(--ap-card-3))!important;color:var(--ap-tile-ink)!important;border-color:transparent!important;
+ }
+html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(4),
+ html body.portal-page .portal-layout[data-attendigo-role] #dashboardView :is(.admin-command-metric,.dh-command-metric):nth-child(4n+4),
+ #main #overviewPanel .metric-grid>.metric-card:nth-child(4n+4),
+ body.portal-page .student-summary-grid>.student-summary-item:nth-child(4n+4),
+ body.portal-page .parent-summary-grid>.student-profile-item:nth-child(4n+4) {
+  --ap-tile-ink:var(--ap-ink-4);background:linear-gradient(145deg,var(--ap-card-4),var(--ap-card-4))!important;color:var(--ap-tile-ink)!important;border-color:transparent!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric :is(strong,span,.teacher-v3-metric-icon),
+ html body.portal-page .portal-layout[data-attendigo-role] #dashboardView :is(.admin-command-metric,.dh-command-metric) :is(strong,span,small),
+ #main #overviewPanel .metric-grid>.metric-card :is(strong,span,small),
+ body.portal-page :is(.student-summary-grid>.student-summary-item,.parent-summary-grid>.student-profile-item) :is(strong,span) {color:var(--ap-tile-ink,currentColor)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric>.teacher-v3-metric-icon {color:var(--ap-tile-ink)!important;background:color-mix(in srgb,var(--ap-tile-ink) 12%,transparent)!important;}
+ #main #overviewPanel .metric-grid>.metric-card .metric-icon {background:color-mix(in srgb,var(--ap-tile-ink) 12%,transparent)!important;}
+}
