@@ -169,3 +169,75 @@
  .ax-live-weather a{color:inherit;text-decoration:underline;}
 }
 @media screen and (max-width:350px){.ax-weather-readings{grid-template-columns:minmax(0,1fr);}}
+
+/* V5.2 Curve: continuous school-colored canvas and a sculpted active cutout.
+   The main surface and selected tab use the same theme color. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar {
+   --ax-cutout:var(--bg,#f4f7fb);--ax-cutout-ink:var(--ag-reading,#19304a);
+   background-image:none!important;border:0!important;box-shadow:none!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .side-nav {padding-inline-end:0!important;overflow:visible!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .sidebar-brand {background:transparent!important;border:0!important;border-bottom:1px solid var(--side-border)!important;border-radius:0!important;padding:8px 2px 12px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-submenu {border-inline-start:0!important;margin-block:0 4px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar :is(.nav-item,.nav-group-toggle) {font-size:16px!important;min-height:44px!important;padding-block:8px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar :is(.nav-item,.nav-group-toggle) .nav-icon {background:transparent!important;padding:0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden]) {
+   position:relative!important;isolation:isolate;background:var(--ax-cutout)!important;color:var(--ax-cutout-ink)!important;
+   border-radius:24px 0 0 24px!important;box-shadow:none!important;z-index:1;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::before,
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::after {
+   content:"";position:absolute;right:0;width:16px;height:16px;pointer-events:none;background:transparent;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::before {top:-16px;border-bottom-right-radius:16px;box-shadow:5px 5px 0 5px var(--ax-cutout);}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::after {bottom:-16px;border-top-right-radius:16px;box-shadow:5px -5px 0 5px var(--ax-cutout);}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:focus-visible {outline:2px solid var(--ax-cutout-ink)!important;outline-offset:-4px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .topbar {border:0!important;border-radius:0 0 16px 16px!important;box-shadow:none!important;background:var(--ag-surface,#fff)!important;}
+ #main > .principal-navigation {--ax-principal-nav:#175266;--ax-principal-ink:#fff;background:var(--ax-principal-nav)!important;border:0!important;box-shadow:none!important;color:var(--ax-principal-ink);}
+ #main .principal-nav-heading {background:transparent!important;color:var(--ax-principal-ink)!important;border:0!important;}
+ #main .principal-nav-heading :is(strong,span),#main .principal-menu-label>span {color:var(--ax-principal-ink)!important;}
+ #main .principal-main-tabs>.tab {background:transparent!important;color:var(--ax-principal-ink)!important;border:0!important;box-shadow:none!important;}
+ #main .principal-main-tabs>.tab.is-active {background:var(--bg,#f5f8fb)!important;color:var(--ink,#1e293b)!important;border-radius:22px 6px 6px 22px!important;outline:none!important;}
+ #main .principal-main-tabs>.tab:focus-visible {outline:2px solid currentColor!important;outline-offset:-3px!important;}
+ /* Weather: show usable data first and retain visible provider attribution. */
+ .ax-live-weather {padding:12px!important;border-radius:14px!important;margin-block:8px!important;}
+ .ax-live-weather .ax-weather-heading {flex-wrap:nowrap;gap:8px;}
+ .ax-live-weather .ax-weather-heading>div {min-width:0;}
+ .ax-live-weather .ax-weather-heading h3 {font-size:18px;margin:2px 0!important;}
+ .ax-live-weather .ax-weather-refresh {display:grid!important;place-items:center;flex:0 0 44px;width:44px!important;height:44px!important;min-width:44px!important;padding:0!important;border-radius:50%!important;border:1px solid var(--ax-border,#dce5ee)!important;color:var(--ag-reading,var(--ink,#19304a))!important;background:var(--ag-surface,var(--surface,#fff))!important;}
+ .ax-live-weather .ax-weather-status {font-size:14px;line-height:1.35;margin:4px 0 8px;}
+ .ax-live-weather .ax-weather-readings {gap:7px;margin:6px 0;}
+ .ax-live-weather :is(.ax-weather-main,.ax-weather-heat) {padding:10px;gap:3px;border-radius:12px;}
+ .ax-live-weather .ax-weather-main svg {width:30px;height:30px;}
+ .ax-live-weather .ax-weather-main strong,.ax-live-weather .ax-weather-heat strong {font-size:clamp(24px,3vw,34px);}
+ .ax-live-weather .ax-weather-heat>span,.ax-live-weather .ax-weather-condition {font-size:14px;line-height:1.3;}
+ .ax-live-weather .ax-weather-heat[data-band="Below caution threshold"] {background:#e7f3e9;color:#205b35;border-color:#b9d9c1;}
+ .ax-live-weather .ax-weather-heat[data-band="Extreme caution"] {background:#ffecd5;color:#783f0b;border-color:#d9a76e;}
+ .ax-live-weather .ax-weather-heat[data-band="Extreme danger"] {background:#641e25;border-color:#641e25;color:#fff;}
+ .ax-live-weather .ax-weather-extra {display:flex;flex-wrap:wrap;gap:6px;font-size:14px;}
+ .ax-live-weather .ax-weather-extra>span {border:1px solid var(--ax-border,#dce5ee);padding:5px 8px;border-radius:20px;}
+ .ax-weather-hour-heading {grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px;align-items:center;font-size:14px;margin-top:3px;}
+ .ax-weather-hour-heading>span {font-size:12px;color:var(--ag-secondary,var(--muted,#52647b));}
+ .ax-live-weather .ax-weather-hourly {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(92px,1fr);grid-template-columns:none;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;max-width:100%;min-width:0;padding-bottom:5px;gap:6px;}
+ .ax-live-weather .ax-weather-hourly>div {scroll-snap-align:start;padding:8px;gap:3px;font-size:13px;line-height:1.3;white-space:nowrap;}
+ .ax-live-weather .ax-weather-hourly>div>strong {font-size:20px;line-height:1.25;}
+ .ax-live-weather .ax-weather-brief {grid-column:1/-1;font-size:13px;line-height:1.35;margin:0;}
+ .ax-live-weather .ax-weather-details {border-top:1px solid var(--ax-border,#dce5ee);margin-top:6px;padding-top:4px;}
+ .ax-live-weather .ax-weather-details>summary {min-height:44px;display:list-item;align-content:center;font-size:14px;font-weight:650;cursor:pointer;}
+ .ax-live-weather .ax-weather-details p {font-size:14px;line-height:1.4;margin:6px 0;}
+ .ax-live-weather .ax-weather-credit {display:block;font-size:12px!important;line-height:1.35;overflow-wrap:anywhere;}
+}
+@media screen and (min-width:861px) {
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) {grid-template-columns:252px minmax(0,1fr)!important;background:var(--sidebar,#20456c)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar {margin:0!important;border-radius:0!important;max-height:100dvh!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar {width:252px!important;min-width:252px!important;padding-inline:14px 0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar>:not(.side-nav) {max-width:calc(100% - 14px)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-submenu {padding-inline-end:0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed)>.main-area {border-radius:26px 0 0 26px;background:var(--bg,#f4f7fb)!important;}
+}
+@media screen and (max-width:860px) {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar {border-radius:0 26px 26px 0!important;}
+ .ax-live-weather .ax-weather-hourly {grid-auto-columns:100px;}
+}
+@media screen and (max-width:350px) {.ax-live-weather .ax-weather-readings{grid-template-columns:repeat(2,minmax(0,1fr));}.ax-live-weather :is(.ax-weather-main,.ax-weather-heat){padding:8px;}}
