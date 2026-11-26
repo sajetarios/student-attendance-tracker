@@ -312,7 +312,54 @@ async function checkSchoolIdentity(engine,engineName){
  }finally{await browser.close();}
 }
 
+async function checkDashboardMetricIcons(engine,engineName){
+ const browser=await engine.launch({headless:true});
+ try{
+  const page=await browser.newPage();
+  const svg='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/></svg>';
+  const tile=(cls,icon,label)=>'<article class="'+cls+'"><span class="'+icon+'" aria-hidden="true">'+svg+'</span><span>'+label+'</span><strong>28</strong><small>Recorded substitute assignments</small></article>';
+  const dh=tile('dh-command-metric','dh-metric-icon','Classes Needing Coverage');
+  const admin=tile('admin-command-metric','admin-metric-icon','Active student records');
+  const teacher=tile('learner-metric','teacher-v3-metric-icon','Present learners').replace('<small>Recorded substitute assignments</small>','');
+  const student=tile('student-summary-item','student-summary-icon','Recent accepted records').replace('<small>Recorded substitute assignments</small>','');
+  const principal=tile('metric-card','metric-icon','Staff with verified DTR punch').replace('<span>Staff','<span class="metric-label">Staff');
+  for(const theme of ['light','dark'])for(const width of [320,390,768,1280]){
+   await page.setViewportSize({width,height:900});
+   const attrs='data-ui-theme="'+theme+'" data-theme="'+theme+'"';
+   const fixture=[
+    ['portal.html','<div id="dashboardView"><div id="departmentHeadOverview"><div class="dh-command-metrics">'+dh+dh+dh+dh+'</div></div><div id="adminDashboardCard"><div class="admin-command-metrics">'+admin+admin+admin+'</div></div></div>',attrs+' class="attendigo-dh-v2"','portal-page',['.dh-command-metric','.admin-command-metric']],
+    ['portal.html','<div class="portal-layout" data-attendigo-role="TEACHER" style="display:block"><div id="dashboardView" data-ax-teaching-day><div id="learnerSummaryCard"><div class="learner-summary-grid">'+teacher+teacher+teacher+teacher+'</div></div></div></div>',attrs+' class="attendigo-teacher-v3"','portal-page',['.learner-metric']],
+    ['student-portal.html','<div class="student-summary-grid">'+student+student+student+'</div>',attrs,'portal-page student-portal-body',['.student-summary-item']],
+    ['principal.html','<div id="main"><div id="overviewPanel"><div class="metric-grid">'+principal+principal+principal+principal+'</div></div></div>',attrs,'',['.metric-card']]
+   ];
+   for(const [name,markup,htmlAttrs,bodyClasses,selectors] of fixture){
+    await setup(page,name,markup,htmlAttrs,bodyClasses);
+    for(const selector of selectors){
+     const results=await page.locator(selector).evaluateAll(cards=>cards.map(card=>{
+      const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
+      const icon=card.querySelector('span[aria-hidden]'),value=card.querySelector('strong'),label=[...card.querySelectorAll(':scope > span')].find(s=>s!==icon);
+      return {card:rect(card),icon:rect(icon),value:rect(value),label:rect(label),position:getComputedStyle(icon).position};
+     }));
+     for(const x of results){
+      const detail=engineName+' '+theme+' '+width+' '+selector+' '+JSON.stringify(x);
+      assert.equal(x.position,'static',detail);
+      assert.ok(x.icon.width>=30&&x.icon.height>=30,detail);
+      assert.ok(Math.abs(x.icon.y-x.value.y)<=1,detail);
+      assert.ok(x.icon.x+x.icon.width<=x.card.x+x.card.width+1&&x.card.x+x.card.width-(x.icon.x+x.icon.width)<=16,detail);
+      assert.ok(!overlap(x.icon,x.value)&&!overlap(x.icon,x.label),detail);
+      assert.ok(x.label.x>=x.card.x-1&&x.label.x+x.label.width<=x.card.x+x.card.width+1,detail);
+      assert.ok(x.label.y>=x.icon.y+x.icon.height-1,detail);
+     }
+    }
+   }
+  }
+  console.log(engineName+' dashboard metric icon placement: light/dark mobile and desktop passed');
+ }finally{await browser.close();}
+}
+
 (async()=>{
+ await checkDashboardMetricIcons(chromium,'Chromium');
+ await checkDashboardMetricIcons(webkit,'WebKit');
  await checkSchoolIdentity(chromium,'Chromium');
  await checkSchoolIdentity(webkit,'WebKit');
  await checkPrincipalHeaderGeometry(chromium,'Chromium');
