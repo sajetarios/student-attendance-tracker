@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v453-intuitive-navigation";
+const CACHE = "attendigo-v454-navigation-refresh";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -7,7 +7,7 @@ const OFFLINE_REQUIRED = [
   ...OFFLINE_TOOL_PAGES,
   "/attendigo-experience.css?v=4",
   "/attendigo-role-workspaces.js?v=5",
-  "/attendigo-signature.css?v=9",
+  "/attendigo-signature.css?v=10",
   "/school-weather-widget.js?v=4",
   "/attendigo-layout-density.css?v=1",
   "/app-dialog.css?v=2",
@@ -116,7 +116,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=246",
+  "/portal.js?v=247",
   "/attendigo-help-topics.js?v=4",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=4",
