@@ -27,7 +27,8 @@ const roles={SCHOOL_ADMIN:'School operations',DEPARTMENT_HEAD:'Department priori
    const page=await browser.newPage({viewport:{width,height:900},hasTouch:width<800,isMobile:width<800});
    try{
     await page.setContent('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body class="portal-page"><div class="portal-layout" data-attendigo-role="'+role+'">'+nav+'<main class="main-area content-wrap"><div id="dashboardView">'+intro+'<div id="auxiliary">Auxiliary</div>'+dashboards.join('')+'</div>'+scanner+'</main></div></body></html>');
-    for(const css of styles(staff))await page.addStyleTag({content:css});
+    // Use the same network-independent stylesheet injection as the existing WebKit suite.
+    await page.evaluate(sheets=>{for(const css of sheets){const node=document.createElement('style');node.textContent=css;document.head.append(node);}},styles(staff).map(css=>css.replace(/@import\s+[^;]+;/g,'')));
     await page.evaluate(role=>{document.querySelector('#sidebar').classList.add('open');document.querySelector('.portal-layout').removeAttribute('data-attendigo-role');window.attendigoStaffIdentity=Promise.resolve({role});},role);
     const hiddenBefore=await page.locator('#sidebar [hidden]').count();
     await page.addScriptTag({content:js});
@@ -51,7 +52,8 @@ const roles={SCHOOL_ADMIN:'School operations',DEPARTMENT_HEAD:'Department priori
     const page=await browser.newPage({viewport:{width,height:850},hasTouch:width<800,isMobile:width<800});
     try{
      await page.setContent('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body class="portal-page"><main id="main" style="width:100%;box-sizing:border-box">'+markup+'</main></body></html>');
-     for(const css of styles(source))await page.addStyleTag({content:css});
+     // Use the same network-independent stylesheet injection as the existing WebKit suite.
+    await page.evaluate(sheets=>{for(const css of sheets){const node=document.createElement('style');node.textContent=css;document.head.append(node);}},styles(source).map(css=>css.replace(/@import\s+[^;]+;/g,'')));
      const b=await page.locator(selector).evaluate(e=>({scroll:e.scrollWidth,client:e.clientWidth,width:e.getBoundingClientRect().width}));
      assert.ok(b.width>0&&b.scroll<=b.client+1,name+' header overflow '+width);
     }finally{await page.close();}
