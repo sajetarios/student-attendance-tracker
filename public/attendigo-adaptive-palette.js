@@ -22,12 +22,15 @@
  function build(input){
   const nav=valid(input)?input.toLowerCase():DEFAULT;
   const [h,s]=hsl(nav),hue=s<.12? hsl(DEFAULT)[0]:h;
-  // Exact Electric Violet reference swatches for the default. Rotate the
-  // decorative swatches around the school's hue; retain a distinct green
-  // success accent and leave warning/danger colors untouched.
-  const shift=hue-hsl(DEFAULT)[0],base=['#6c4dff','#2ccb8f','#4da3ff','#8bcf3f'];
-  const cards=base.map((v,i)=>{if(i===1||Math.abs(shift)<.1)return v;let [a,b,c]=hsl(v);return color(a+shift,b,c);});
-  const primary=color(hue,.72,.40);
+  // Decorative cards use a bounded chroma, lightness and spaced hues.
+  // Never rotate fully saturated swatches: that produced neon greens.
+  // Preserve the exact school navigation color and independent status colors.
+  const isDefault=nav===DEFAULT||s<.12;
+  const cards=isDefault
+    ? ['#b3a4ed','#83cbb5','#91bde8','#c0d99a']
+    : [color(hue,.46,.76),color(hue+65,.48,.73),
+       color(hue+245,.54,.77),color(hue+180,.43,.79)];
+  const primary=color(hue,.52,.30);
   return {nav,navInk:ink(nav),primary,primaryInk:ink(primary),cards,cardInk:cards.map(ink),tint:color(hue,.52,.96),darkTint:color(hue,.25,.14)};
  }
  if(typeof module!=='undefined'&&module.exports){module.exports={build,contrast,ink,iconTone};return;}
