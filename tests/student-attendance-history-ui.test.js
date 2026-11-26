@@ -47,3 +47,19 @@ test('profile photo is mounted in the first identity row and account settings ar
  assert.match(css,/#studentProfileCard #studentProfilePhoto \.my-photo-widget\{display:flex;align-items:center;flex-direction:row/);
  assert.match(css,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
 });
+
+test('responsive student workspace preserves control IDs, contrast and scanner availability',()=>{
+ const responsive=html.match(/<style id="student-responsive-workspace">([\s\S]*?)<\/style>/)?.[1];
+ assert.ok(responsive);
+ assert.ok(html.indexOf('attendigo-signature.css')<html.indexOf('id="student-responsive-workspace"'));
+ assert.match(html,/<div class="student-primary-workspace">\s*<section[^>]*id="studentProfileCard"[\s\S]*?id="studentScanQr"[\s\S]*?<\/section>\s*<\/div>\s*<section[^>]*id="studentQrScannerCard"/);
+ assert.match(responsive,/@media\(min-width:1000px\)[\s\S]*?grid-template-columns:minmax\(0,1.25fr\) minmax\(0,1fr\)/);
+ assert.match(responsive,/@media\(max-width:480px\)[\s\S]*?grid-template-columns:minmax\(0,1fr\)/);
+ assert.match(responsive,/\.student-header \.student-welcome-block>p\{color:var\(--ap-primary-ink,#fff\)!important/);
+ assert.match(responsive,/#studentScanQr\{width:100%;min-height:50px/);
+ assert.match(responsive,/#studentQrScannerCard\[hidden\]\{display:none!important\}/);
+ assert.match(html,/<button class="outline-button" id="studentLogout" type="button">Sign out<\/button>/);
+ for(const id of ['studentScanQr','studentQrSync','studentQrQueueStatus','studentQrConfirm','studentRefresh','studentLogout','studentPasswordRequired','studentProfilePhoto','studentAttendanceCard']){
+  assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
+ }
+});
