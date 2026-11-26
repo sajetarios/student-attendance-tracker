@@ -392,3 +392,39 @@ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardVi
  [data-ap-icon] svg[fill]:not([fill="none"]),svg[data-ap-icon][fill]:not([fill="none"]),
  [data-ap-icon] svg [fill]:not([fill="none"]),svg[data-ap-icon] [fill]:not([fill="none"]) {fill:currentColor!important;}
 }
+
+/* V5.5 Navigation: an adaptive school-color rail with a sculpted active tab.
+   Keep the original menu elements, authorization, keyboard and drawer behavior. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar {
+  --ax-rail-line:color-mix(in srgb,var(--ap-nav-ink) 24%,transparent);
+  --ax-rail-hover:color-mix(in srgb,var(--ap-nav-ink) 12%,transparent);
+  background:var(--ap-nav)!important;color:var(--ap-nav-ink)!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav {gap:5px!important;padding-block:4px 16px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav>.nav-group {margin:3px 0 0!important;padding:7px 0 0!important;border-top:1px solid var(--ax-rail-line)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .nav-group-toggle {font-size:16px!important;font-weight:750!important;letter-spacing:0!important;min-height:44px!important;border-radius:12px!important;padding-inline:9px!important;gap:9px!important;color:var(--ap-nav-ink)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .nav-submenu {border-inline-start:1px solid var(--ax-rail-line)!important;margin:2px 0 4px 18px!important;padding-inline:7px 0!important;gap:2px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .nav-item:not(.active):not([hidden]) {color:var(--ap-nav-ink)!important;border-radius:10px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .nav-item:not([hidden]) {font-size:16px!important;min-height:44px!important;gap:9px!important;line-height:1.3!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .nav-label {min-width:0;overflow-wrap:anywhere;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar :is(.nav-item,.nav-group-toggle):not(.active):hover {background:var(--ax-rail-hover)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) {background:var(--ax-cutout,var(--ag-surface,#fff))!important;color:var(--ax-cutout-ink)!important;font-weight:750!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) .nav-icon svg {color:inherit!important;stroke:currentColor!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav :is(.nav-item,.nav-icon,.nav-label) {transition-property:background-color,box-shadow!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav :is(.nav-item,.nav-group-toggle):focus-visible {outline:2px solid currentColor!important;outline-offset:-3px!important;}
+ #main .principal-navigation {border-radius:20px!important;}
+ #main .principal-main-tabs>.tab {min-height:44px;gap:8px;font-weight:650;}
+ #main .principal-main-tabs>.tab.is-active {border-radius:22px 6px 6px 22px!important;}
+ #main .principal-navigation-secondary {border-top:1px solid color-mix(in srgb,var(--ap-nav-ink) 24%,transparent);padding-top:8px;}
+ body.portal-page :is(.student-page,.parent-page) .ax-page-links {background:var(--ap-nav)!important;border-color:transparent!important;}
+ body.portal-page :is(.student-page,.parent-page) .ax-page-links>a {color:var(--ap-nav-ink)!important;background:transparent!important;min-height:44px;}
+ body.portal-page :is(.student-page,.parent-page) .ax-page-links>a:focus-visible {outline:2px solid currentColor;outline-offset:-3px;}
+}
+@media screen and (max-width:860px) {
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav {padding-inline-end:8px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .nav-item.active:not([hidden]) {border-radius:18px 6px 6px 18px!important;}
+}
+@media screen and (prefers-reduced-motion:reduce) {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav :is(.nav-item,.nav-icon,.nav-label) {transition:none!important;}
+}
