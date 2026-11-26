@@ -148,7 +148,7 @@
          const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(Math.min(Date.now(),Date.parse(ob.endsAt)))).map(p=>[p.type,p.value]));
          const form=await window.AppDialog.form('Report the actual end of your official transaction. You do not need to record a historical gate logout.',[
           {name:'date',label:'Actual completion date',inputType:'date',defaultValue:parts.year+'-'+parts.month+'-'+parts.day,required:true},
-          {name:'time',label:'Actual completion time (24-hour HH:MM)',defaultValue:parts.hour+':'+parts.minute,required:true,placeholder:'17:45',maxLength:5,validate:v=>/^([01]\\d|2[0-3]):[0-5]\\d$/.test(v)||'Enter time as HH:MM.'},
+          {name:'time',label:'Actual completion time (24-hour HH:MM)',defaultValue:parts.hour+':'+parts.minute,required:true,placeholder:'17:45',maxLength:5,validate:v=>/^([01]\d|2[0-3]):[0-5]\d$/.test(v)||'Enter time as HH:MM.'},
           {name:'reason',label:'Reason if completion differs from approved end',inputType:'textarea',maxLength:1000},
           {name:'reference',label:'Certified locator slip / certificate reference',required:true,maxLength:300,helpText:'Keep the original evidence for the Department Head and Principal.'}
          ],{title:'Complete Official Business',confirmText:'Submit for verification'});

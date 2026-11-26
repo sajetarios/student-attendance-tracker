@@ -295,7 +295,9 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
   res.set('Cache-Control','no-store, private');
   const input=String(req.body?.completedAt||''),reason=String(req.body?.reason||'').trim(),reference=String(req.body?.reference||'').trim();
   const completedAt=new Date(input);
-  if(!uuid.test(req.params.id)||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|\+08:00)$/.test(input)||
+  const calendarDate=new Date(input.slice(0,10)+'T00:00:00Z');
+  if(!uuid.test(req.params.id)||!/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{3})?(?:Z|\+08:00)$/.test(input)||
+    !Number.isFinite(calendarDate.getTime())||calendarDate.toISOString().slice(0,10)!==input.slice(0,10)||
     !Number.isFinite(completedAt.getTime())||completedAt.getTime()>Date.now()||
     !reference||reference.length>300||reason.length>1000)
    return res.status(400).json({error:'Enter a valid actual completion date/time, evidence reference and reason when the approved time changed.'});
