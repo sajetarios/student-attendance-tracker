@@ -17,7 +17,11 @@ permissions:
   contents: read
 
 jobs:
+  release-scope:
+    uses: ./.github/workflows/release-scope.yml
   department-lunch:
+    needs: release-scope
+    if: needs.release-scope.outputs.ui_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     services:

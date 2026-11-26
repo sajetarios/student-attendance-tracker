@@ -8,7 +8,11 @@ on:
 permissions:
   contents: read
 jobs:
+  release-scope:
+    uses: ./.github/workflows/release-scope.yml
   full-unit-regression:
+    needs: release-scope
+    if: needs.release-scope.outputs.ui_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -21,6 +25,8 @@ jobs:
       - name: Full legacy regression suite (including prior permission expectations)
         run: npm test
   isolated-department-lunch:
+    needs: release-scope
+    if: needs.release-scope.outputs.ui_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -72,6 +78,8 @@ jobs:
       - name: Concurrent synthetic campus and department load (10, 50, 100 departments)
         run: node tests/department-lunch-scale-postgres.cjs
   responsive-browser:
+    needs: release-scope
+    if: needs.release-scope.outputs.ui_only != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -84,6 +92,8 @@ jobs:
       - run: node scripts/check-responsive-layout.cjs
 
   upgrade-existing-schema:
+    needs: release-scope
+    if: needs.release-scope.outputs.ui_only != 'true'
     name: Upgrade from ${{ matrix.baseline.name }} (PostgreSQL 17)
     strategy:
       fail-fast: false

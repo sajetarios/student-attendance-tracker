@@ -4,6 +4,9 @@ on:
     paths:
       - 'public/**'
       - 'scripts/check-responsive-layout.cjs'
+      - 'scripts/classify-release-scope.cjs'
+      - 'tests/release-scope.test.js'
+      - '.github/workflows/release-scope.yml'
       - '.github/workflows/responsive-browser.yml'
 permissions:
   contents: read
