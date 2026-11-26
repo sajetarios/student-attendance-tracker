@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v452-compact-weather-info";
+const CACHE = "attendigo-v453-intuitive-navigation";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
