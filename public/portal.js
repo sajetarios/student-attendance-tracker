@@ -2665,7 +2665,10 @@ function coverageStatusLabel(status) {
     const host = $('weeklyTimetableBoard');
     if (!host) return;
     const timetableHeading = $('weeklyTimetableWorkspace')?.querySelector('.weekly-timetable-toolbar strong');
-    if(timetableHeading) timetableHeading.textContent=user.role==='TEACHER'?'My Teaching Schedule':'Weekly timetable';
+    if(timetableHeading) timetableHeading.textContent=user.role==='TEACHER'?'My Teaching & Advisory Schedules':'Weekly timetable';
+    const teacherWorkspace = user.role === 'TEACHER';
+    $('weeklyTimetableWorkspace')?.classList.toggle('tt-teacher-refresh', teacherWorkspace);
+    for (const id of ['teacherTimetablePrevious','teacherTimetableNext','teacherTimetableStats']) if ($(id)) $(id).hidden = !teacherWorkspace;
     const gradeFilter = $('weeklyGradeFilter');
     const sectionFilter = $('weeklySectionFilter');
     const asOfFilter = $('weeklyScheduleAsOf');
@@ -2797,6 +2800,27 @@ function coverageStatusLabel(status) {
     const summary = $('weeklyTimetableSummary');
     if (summary) summary.textContent = filtered.length + ' recurring classes · Week ' +
       weekDates[0] + ' to ' + weekDates[6] + ' · ' + scheduleAdjustments.length + ' temporary change(s)';
+    if (teacherWorkspace && $('teacherTimetableStats')) {
+      // Presentation-only totals derived from existing effective daily cards.
+      const allCards = days.flatMap(cardsForDay);
+      const taught = allCards.filter(p => !p.cancelled && teacherRelationship(p).mySubject);
+      const advisory = new Set(allCards.filter(p=>!p.cancelled && isMyAdvisorySection(p)).map(p=>JSON.stringify([String(p.gradeLevel||'').trim(),String(p.section||'').trim().toLowerCase()])));
+      const subjects = new Set(taught.map(p=>String(p.subjectName||p.periodName||'').trim().toLowerCase()).filter(Boolean));
+      const minutes = value => {
+        const match = /^([01]\d|2[0-3]):([0-5]\d)/.exec(String(value||''));
+        return match ? Number(match[1])*60+Number(match[2]) : null;
+      };
+      const duration = taught.reduce((total,p)=>{
+        const start=minutes(p.startTime),end=minutes(p.endTime);
+        return total+(start!==null&&end!==null&&end>=start?end-start:0);
+      },0);
+      $('ttStatSubjects').textContent=String(subjects.size);
+      $('ttStatAdvisory').textContent=String(advisory.size);
+      $('ttStatSessions').textContent=String(taught.length);
+      $('ttStatDuration').textContent=Math.floor(duration/60)+'h '+(duration%60)+'m';
+      const fmt = date => new Date(date+'T00:00:00Z').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
+      if(summary) summary.textContent=fmt(weekDates[0])+' – '+fmt(weekDates[6])+' · '+allCards.filter(p=>p.adjustment).length+' date-specific changes';
+    }
     if (window.TimetableGrid && activeScheduleDisplay !== 'list') {
       const weekdayDates=Object.fromEntries(days.map(day=>[
         day,weekDates.find(date=>new Date(date+'T00:00:00Z').getUTCDay()===day)
@@ -7455,6 +7479,18 @@ let teacherActionMenuListenersInstalled = false;
   document.querySelectorAll('[data-schedule-display]').forEach(button => {
     button.addEventListener('click', () => setScheduleDisplay(button.dataset.scheduleDisplay));
   });
+  for (const [id,offset] of [['teacherTimetablePrevious',-7],['teacherTimetableNext',7]]) {
+    $(id)?.addEventListener('click',()=>{
+      if(user?.role!=='TEACHER')return;
+      const input=$('weeklyScheduleAsOf');
+      if(!input)return;
+      const date=new Date((input.value||dataSchoolDate())+'T00:00:00Z');
+      if(Number.isNaN(date.getTime()))return;
+      date.setUTCDate(date.getUTCDate()+offset);
+      input.value=date.toISOString().slice(0,10);
+      input.dispatchEvent(new Event('change',{bubbles:true}));
+    });
+  }
   $('weeklyScheduleAsOf')?.addEventListener('change', async () => {
     if (user.role === 'TEACHER') await loadSchoolData();
     else await loadScheduleAdjustments();

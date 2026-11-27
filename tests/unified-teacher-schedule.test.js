@@ -17,7 +17,7 @@ test('teacher weekly/list timetable is scoped to their own assignments without a
  assert.match(js,/function renderWeeklyTimetable\(\)/);
  assert.match(js,/const effectivePeriods = periods\.filter\(period =>/);
  assert.match(js,/user\.role !== 'TEACHER' \|\| String\(period\.assignedTeacherUserId \|\| ''\) === String\(user\.userId \|\| ''\)/);
- assert.match(js,/user\.role==='TEACHER'\?'My Teaching Schedule':'Weekly timetable'/);
+ assert.match(js,/user\.role==='TEACHER'\?'My Teaching & Advisory Schedules':'Weekly timetable'/);
  assert.match(js,/setScheduleDisplay\(activeScheduleDisplay\)/);
 });
 test('advisers see all subjects in their advisory section, but only their own teaching timetable',()=>{
