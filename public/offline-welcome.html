@@ -74,7 +74,7 @@ const roleGuard=window.AttendigoOfflineAccount;
 function showOfflineRole(){
  const account=roleGuard?.current();
  for(const link of document.querySelectorAll('[data-offline-role]'))link.hidden=link.dataset.offlineRole!==account?.role;
- document.getElementById('offlineRoleMessage').textContent=account?'Only your verified account’s offline tool is available. Reconnect to switch accounts.':'No verified offline account is available here. Reconnect and sign in to prepare your tool.';
+ document.getElementById('offlineRoleMessage').textContent=account?(account.role==='GATE_KEEPER'?'Gatekeeper account verified until '+new Date(account.until).toLocaleString()+'. Open the scanner using your original device passphrase.':'Only your verified account’s offline tool is available. Reconnect to switch accounts.'):'Offline authorization is missing or expired. Reconnect and sign in in the same app or browser used to prepare the device. Gatekeepers: open and unlock the scanner while online to renew readiness. Do not clear browser data or reinstall.';
 }
 showOfflineRole();roleGuard?.watch(showOfflineRole);
 async function refreshOfflineRole(){await roleGuard?.authorize();showOfflineRole();}
