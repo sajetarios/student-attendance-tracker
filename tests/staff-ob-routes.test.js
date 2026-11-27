@@ -216,3 +216,19 @@ test('principal OB approval and completion both roll back on authorization overl
   assert.ok(!f.queries.some(q=>q.sql==='COMMIT'||q.sql.includes('INSERT INTO staff_ob_class_coverage')));
  }
 });
+
+test('verified OB extension flags newly overlapping classes atomically without replacing existing substitutes',async()=>{
+ const id='11111111-1111-4111-8111-111111111111',url='/api/staff-attendance/official-business/:id/completion-decide';
+ const f=fixture('PRINCIPAL');
+ assert.equal((await f.call('POST',url,{decision:'APPROVE',evidenceVerified:true},{id})).code,200);
+ const index=f.queries.findIndex(x=>x.sql.includes('INSERT INTO staff_ob_class_coverage'));
+ assert.ok(index>f.queries.findIndex(x=>x.sql.includes('SELECT 1 FROM staff_official_business_requests current_ob')));
+ assert.ok(index<f.queries.findIndex(x=>x.sql==='COMMIT'));
+ const q=f.queries[index];
+ assert.deepEqual(q.params,['s1',id]);
+ assert.match(q.sql,/completion_status='VERIFIED' THEN GREATEST\(ob.ends_at,ob.completion_at\)/);
+ assert.match(q.sql,/ON CONFLICT\(school_id,request_id,period_id,class_date\) DO NOTHING/);
+ const rejected=fixture('PRINCIPAL');
+ assert.equal((await rejected.call('POST',url,{decision:'REJECT',note:'Evidence incomplete'},{id})).code,200);
+ assert.ok(!rejected.queries.some(x=>x.sql.includes('INSERT INTO staff_ob_class_coverage')));
+});
