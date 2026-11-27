@@ -116,11 +116,32 @@ async function registerShell(){
   throw Error('This browser does not support the required offline PWA storage.');
  await navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'});
  await navigator.serviceWorker.ready;
+ // A populated installation cache alone does not establish navigation control.
+ // Wait for the controller to activate and identify this release before promising
+ // that a newly opened browser can load the scanner with no network.
+ const release='attendigo-v479-gatekeeper-cold-reopen';
+ const controlled=async()=>{
+  const worker=navigator.serviceWorker.controller;
+  if(!worker||typeof MessageChannel!=='function')return false;
+  return new Promise(resolve=>{
+   const channel=new MessageChannel();let timer;
+   const finish=ok=>{clearTimeout(timer);channel.port1.close();resolve(ok);};
+   timer=setTimeout(()=>finish(false),1200);
+   channel.port1.onmessage=event=>finish(event.data?.offlineRelease===release);
+   try{worker.postMessage({type:'ATTENDIGO_OFFLINE_RELEASE'},[channel.port2]);}catch{finish(false);}
+  });
+ };
+ let ready=await controlled();
+ if(!ready){
+  await new Promise(resolve=>{const service=navigator.serviceWorker;let timer;const done=()=>{clearTimeout(timer);service.removeEventListener('controllerchange',done);resolve();};service.addEventListener('controllerchange',done,{once:true});timer=setTimeout(done,6000);});
+  ready=await controlled();
+ }
+ if(!ready)throw Error('Offline app update is not active yet. Stay online and reopen this scanner before testing offline.');
  // The service worker installs all public offline dependencies atomically.
  // Check a complete release cache, rather than creating an obsolete cache that
  // the next service-worker activation will delete.
- const assets=['/gate-offline.html','/gate-offline.js?v=8','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
- for(const cacheName of (await caches.keys()).filter(name=>name.startsWith('attendigo-v'))){
+ const assets=['/gate-offline.html','/gate-offline.js?v=9','/offline-account-guard.js?v=2','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
+ for(const cacheName of (await caches.keys()).filter(name=>name===release)){
   const results=await Promise.all(assets.map(asset=>caches.match(asset,{cacheName})));
   if(results.every(response=>response?.ok))return;
  }
@@ -388,9 +409,9 @@ bind('clearPractice',()=>discardSelected(true));bind('clearPending',()=>discardS
 window.addEventListener('online',()=>{connectivity();void refreshAccess().then(()=>{if(data&&data.events.some(item=>item.practice!==true))return sync();}).catch(e=>{$('syncResult').textContent=e.message;});});
 window.addEventListener('offline',connectivity);
 window.addEventListener('pagehide',()=>{void stop();secretKey=null;data=null;salt=null;lastScan='';lastScanAt=0;$('pass').value='';$('newPass').value='';$('confirmPass').value='';resetPassVisibility();$('queue').replaceChildren();view();}); // never keep decoded badge tokens after navigation
-window.addEventListener('pageshow',event=>{if(event.persisted&&guard?.current('GATE_KEEPER'))view();}); // restore the unlock controls after a cached page returns
+window.addEventListener('pageshow',event=>{if(event.persisted)void refreshAccess().catch(()=>deny());}); // restore the unlock controls after a cached page returns
 function deny(){void lock();$('pass').value='';$('newPass').value='';$('confirmPass').value='';resetPassVisibility();$('queue').replaceChildren();for(const id of ['unlockPanel','preparePanel','scanPanel','syncPanel','recoveryPanel'])$(id).hidden=true;$('network').textContent='Offline authorization missing or expired. Reconnect, sign in as the original Gatekeeper in this same app or browser, and unlock the prepared scanner. Do not clear local data.';}
-guard?.watch(()=>{if(!guard.current('GATE_KEEPER')||(data&&!matchesGate(data.scope)))deny();});
+guard?.watch(()=>{if(!guard.current('GATE_KEEPER')||(data&&!matchesGate(data.scope))){deny();void refreshAccess().catch(()=>deny());}});
 async function refreshAccess(){
  if(!await guard?.authorize('GATE_KEEPER')||!guard.current('GATE_KEEPER')){deny();return;}
  connectivity();
