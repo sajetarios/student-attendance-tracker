@@ -24,5 +24,13 @@ Single consolidated release for the 115-scenario production audit of v480 (base 
 - Review CSC/DepEd rules and school-specific certified policy before new entitlement, LWOP, leave counting, or official report behavior is authorized. Do not invent policy.
 - Only after the complete gate passes: check current production base, rebase if needed, rerun exact-head checks, verify staging migration and rollback readiness, promote one release and confirm exact Render live deployment. No intermediate candidate deployment and no recurring teacher scenario testing.
 
-## Current checkpoint
-Initial source changes and regression tests are in this branch; the complete matrix, remaining workflows and end-to-end test evidence are not yet implemented. Draft PR remains unmergeable by policy until complete. CI passing for a partial candidate is not release approval.
+## Implementation checkpoint (2026-11-28)
+
+- Candidate includes the initial DTR calculation, chronology, pending leave and conflicting memorandum fixes.
+- Verified OB completion now flags additional overlapping regular classes without replacing existing substitute assignments. Signed future-date OB cancellation has a Principal-only workflow and audit, but same-day/past authorization, retrospective OB, documented external Principal decisions and review closure remain outstanding.
+- Signed unused future leave dates/sessions can be amended with the original type/account, non-increasing certified quantity, a new signed document, overlap checks and existing ledger reconciliation. Additional leave or a different type must follow the separate signed approval workflow; policy-specific LWOP and calendar/credit decisions remain outstanding.
+- Migration 102 and signed archive UI/API preserve physically signed Form 48 PDFs by version, hash and audit. Migration 103 allows the additional signed amendment decision. Signed archives are not digital signatures or certifications of the current calculated draft.
+- Offline review now distinguishes original Manila capture date, next-day sync, clock warning, unknown direction and same-date verified slots. Same-ID retries are serialized; unresolved observations block DTR readiness without changing raw or verified punches. Actual corrections still require authorized missing-scan/logbook evidence. End-to-end offline browser lifecycle and school-wide exception dashboard verification remain outstanding.
+- New tests include authenticated disposable PostgreSQL archive and amendment cases, OB coverage/cancellation route tests and offline replay/date/summary regressions. No tests for the new head are yet verified. All applicable exact-head CI, disposable migration, staging, policy verification and the complete scenario matrix remain release gates.
+
+No production data or branch was changed by this candidate. Do not merge merely because existing CI passes.
