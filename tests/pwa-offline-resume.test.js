@@ -101,3 +101,25 @@ test('prepared Gatekeeper browser cannot resume after server rejection, account 
  launch(local,{standalone:false,online:true}).guard.record(teacher,expires());
  assert.equal(launch(local,{standalone:false}).guard.current(),null);
 });
+
+
+test('restored expired tab can recover same renewed Gatekeeper epoch but not another account',async()=>{
+ const local=storage(),first=launch(local,{standalone:false,online:true});
+ first.guard.record(gate,expires());
+ const scope={role:'GATE_KEEPER',schoolId:'school',userId:'guard',validUntil:expires()};
+ assert.equal(first.guard.markGatePrepared(scope),true);
+ const tab=storage(),key='attendigo.offline.verifiedTab.v1',stamp=JSON.parse(first.sessionStorage.getItem(key));
+ tab.setItem(key,JSON.stringify({...stamp,until:Date.now()-1000}));
+ const reopened=launch(local,{standalone:false,sessionStorage:tab});
+ assert.equal(reopened.guard.current('GATE_KEEPER').accountId,'guard');
+ for(const bad of [{...stamp,epoch:'different'},{...stamp,accountId:'other'},'bad']){
+  const stale=storage();stale.setItem(key,JSON.stringify(bad));
+  assert.equal(launch(local,{standalone:false,sessionStorage:stale}).guard.current('GATE_KEEPER'),null);
+ }
+});
+test('prepared browser with Wi-Fi but no server resumes after failed verification',async()=>{
+ const local=storage(),first=launch(local,{standalone:false,online:true});first.guard.record(gate,expires());
+ first.guard.markGatePrepared({role:'GATE_KEEPER',schoolId:'school',userId:'guard',validUntil:expires()});
+ const cold=launch(local,{standalone:false,online:true});
+ assert.equal(await cold.guard.authorize('GATE_KEEPER').then(a=>a.accountId),'guard');
+});
