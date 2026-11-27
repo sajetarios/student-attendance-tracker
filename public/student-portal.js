@@ -8,8 +8,8 @@
   let profile = null;
 
 
-  function clearSession() {
-    window.AttendigoOfflineAccount?.clear();
+  async function clearSession() {
+    await window.AttendigoOfflineAccount?.clear();
     window.StudentQrOffline?.disable();
     sessionStorage.removeItem(tokenKey);
     sessionStorage.removeItem(userKey);
@@ -20,7 +20,7 @@
     // Student identity is exclusively determined by the HttpOnly cookie.
     if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     const response = await fetch(url, {...options, headers, cache: 'no-store'});
-    if (response.status === 401) { clearSession(); location.replace('/portal-login.html'); throw new Error('Your session expired. Please sign in again.'); }
+    if (response.status === 401) { await clearSession(); location.replace('/portal-login.html'); throw new Error('Your session expired. Please sign in again.'); }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || `Request failed (${response.status}).`);
     return data;
@@ -184,11 +184,12 @@
   $('studentRefresh').addEventListener('click', refresh);
   $('studentLogout').addEventListener('click', async () => {
     try { await api('/api/auth/logout', {method:'POST'}); } catch {}
-    clearSession(); location.replace('/portal-login.html');
+    await clearSession(); location.replace('/portal-login.html');
   });
   async function init() {
     const me = await api('/api/auth/me');
     window.AttendigoOfflineAccount?.record(me.user,me.expiresAt);
+    await window.AttendigoOfflineAccount?.flushGate?.();
     if (me.user.role !== 'STUDENT') { location.replace(me.user.role === 'PARENT' ? '/parent-portal.html' : '/portal.html'); return; }
     currentUser = me.user;
     mountStudentPhoto();

@@ -119,7 +119,7 @@ async function registerShell(){
  // A populated installation cache alone does not establish navigation control.
  // Wait for the controller to activate and identify this release before promising
  // that a newly opened browser can load the scanner with no network.
- const release='attendigo-v479-gatekeeper-cold-reopen';
+ const release='attendigo-v480-gatekeeper-durable-authorization';
  const controlled=async()=>{
   const worker=navigator.serviceWorker.controller;
   if(!worker||typeof MessageChannel!=='function')return false;
@@ -140,7 +140,7 @@ async function registerShell(){
  // The service worker installs all public offline dependencies atomically.
  // Check a complete release cache, rather than creating an obsolete cache that
  // the next service-worker activation will delete.
- const assets=['/gate-offline.html','/gate-offline.js?v=9','/offline-account-guard.js?v=2','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
+ const assets=['/gate-offline.html','/gate-offline.js?v=10','/offline-account-guard.js?v=3','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
  for(const cacheName of (await caches.keys()).filter(name=>name===release)){
   const results=await Promise.all(assets.map(asset=>caches.match(asset,{cacheName})));
   if(results.every(response=>response?.ok))return;
@@ -164,7 +164,7 @@ async function prepare(){
   salt=crypto.getRandomValues(new Uint8Array(16));
   secretKey=await derive(pass,salt);
   storedDoc=null;data={scope:identity,events:[]};
-  await save();const resumable=guard.markGatePrepared?.(identity);$('newPass').value='';$('confirmPass').value='';$('pass').value='';
+  await save();const resumable=await guard.persistGatePrepared?.(identity);$('newPass').value='';$('confirmPass').value='';$('pass').value='';
   $('preparePanel').hidden=true;$('unlockPanel').hidden=false;$('unlockStatus').textContent='Device prepared. Keep your passphrase private.';
   $('prepareResult').textContent='Prepared and encrypted. Keep your passphrase private.';
   $('unlockStatus').textContent=resumable?'Offline reopen ready until '+new Date(guard.gateResumeUntil()).toLocaleString()+'. Keep your passphrase private.':'Device prepared, but offline reopen is not confirmed. Keep the scanner open and reconnect to renew.';
@@ -187,7 +187,7 @@ async function renew(){
  const previous=data.scope.validUntil;
  data.scope.validUntil=identity.validUntil;
  try{await save();}catch(error){data.scope.validUntil=previous;throw error;}
- const resumable=guard.markGatePrepared?.(identity);
+ const resumable=await guard.persistGatePrepared?.(identity);
  $('scanResult').textContent=resumable?'Offline reopen ready until '+new Date(guard.gateResumeUntil()).toLocaleString()+'. Existing encrypted scans are preserved.':'Authorized, but offline reopen is not confirmed. Keep this page open and reconnect to renew.';
  view();
 }
@@ -228,7 +228,7 @@ async function unlock(){
   $('syncResult').textContent='Unlocked. Internet not required to capture; syncing requires the same signed-in Gatekeeper.';
   // Upgrade an existing encrypted device without a reset. Only a successful
   // online renewal can establish the bounded dedicated-device resume stamp.
-  if(guard.markGatePrepared&&online()){
+  if(guard.persistGatePrepared&&online()){
    try{await renew();}catch(error){$('unlockStatus').textContent='Scanner unlocked. Offline readiness could not be renewed: '+error.message;}
   }
   view();
@@ -382,7 +382,7 @@ async function resetDevice(forgot){
   const verified=await verifyRecoveryAccount();
   if(String(verified.schoolId)!==String(identity.schoolId)||String(verified.userId)!==String(identity.userId))throw Error('Gatekeeper account changed. Reset canceled.');
   await replaceDoc(original,null,()=>matchesGate(identity)&&(!original.owner||matchesGate(original.owner)));
-  window.AttendigoOfflineAccount?.clearGateResume?.();storedDoc=null;await lock();$('unlockPanel').hidden=true;$('preparePanel').hidden=false;$('recoveryPanel').hidden=true;
+  await window.AttendigoOfflineAccount?.clearGateResume?.();storedDoc=null;await lock();$('unlockPanel').hidden=true;$('preparePanel').hidden=false;$('recoveryPanel').hidden=true;
   $('prepareResult').textContent='Offline device reset. Create a new passphrase to prepare this device again.';
  });
 }
@@ -410,7 +410,7 @@ window.addEventListener('online',()=>{connectivity();void refreshAccess().then((
 window.addEventListener('offline',connectivity);
 window.addEventListener('pagehide',()=>{void stop();secretKey=null;data=null;salt=null;lastScan='';lastScanAt=0;$('pass').value='';$('newPass').value='';$('confirmPass').value='';resetPassVisibility();$('queue').replaceChildren();view();}); // never keep decoded badge tokens after navigation
 window.addEventListener('pageshow',event=>{if(event.persisted)void refreshAccess().catch(()=>deny());}); // restore the unlock controls after a cached page returns
-function deny(){void lock();$('pass').value='';$('newPass').value='';$('confirmPass').value='';resetPassVisibility();$('queue').replaceChildren();for(const id of ['unlockPanel','preparePanel','scanPanel','syncPanel','recoveryPanel'])$(id).hidden=true;$('network').textContent='Offline authorization missing or expired. Reconnect, sign in as the original Gatekeeper in this same app or browser, and unlock the prepared scanner. Do not clear local data.';}
+function deny(){void lock();$('pass').value='';$('newPass').value='';$('confirmPass').value='';resetPassVisibility();$('queue').replaceChildren();for(const id of ['unlockPanel','preparePanel','scanPanel','syncPanel','recoveryPanel'])$(id).hidden=true;$('network').textContent=(guard?.gateResumeMessage?.()||'Offline authorization missing or expired. Reconnect as the original Gatekeeper.')+' Do not clear local data.';}
 guard?.watch(()=>{if(!guard.current('GATE_KEEPER')||(data&&!matchesGate(data.scope)))deny();});
 async function refreshAccess(){
  if(!await guard?.authorize('GATE_KEEPER')||!guard.current('GATE_KEEPER')){deny();return;}
@@ -422,7 +422,7 @@ async function refreshAccess(){
   if(data&&!sameDoc(doc,storedDoc)){await lock();$('unlockStatus').textContent='Device profile changed in another tab. Unlock again.';}
   if(!data)storedDoc=doc;$('unlockPanel').hidden=!doc;$('preparePanel').hidden=!!doc;view();
   $('prepareResult').textContent=doc?'':'No prepared device in this app or browser. Connect to prepare it.';
-  if(doc&&!data)$('unlockStatus').textContent=guard.gateResumeUntil?.()?'Offline reopen authorized until '+new Date(guard.gateResumeUntil()).toLocaleString()+'. Enter your original device passphrase.':'Unlock while online to check and renew offline reopen readiness.';
+  if(doc&&!data)$('unlockStatus').textContent=guard.gateResumeUntil?.()?'Offline authorization saved until '+new Date(guard.gateResumeUntil()).toLocaleString()+'. Enter your original device passphrase.':'Unlock while online to register persistent offline readiness.';
  }catch(error){$('unlockStatus').textContent='Local storage unavailable. Do not clear browser data.';}
 }
 connectivity();void refreshAccess().catch(()=>deny());

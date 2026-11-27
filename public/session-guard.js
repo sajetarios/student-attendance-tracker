@@ -36,7 +36,7 @@
       });
       if (sequence !== checkSequence) return;
       if ([401,403,428].includes(response.status)) {
-        window.AttendigoOfflineAccount?.clear();
+        await window.AttendigoOfflineAccount?.clear();
         if (sessionStorage.getItem(tokenKey) === token) {
           for (const key of [tokenKey, 'schoolAttendance.user', 'schoolAttendance.expiresAt']) sessionStorage.removeItem(key);
         }
@@ -49,6 +49,8 @@
       const expected = document.documentElement.dataset.protectedRole;
       const role = payload?.user?.role;
       window.AttendigoOfflineAccount?.record(payload.user,payload.expiresAt);
+      await window.AttendigoOfflineAccount?.flushGate?.();
+      if(sequence!==checkSequence)return;
       if (!role) { redirect(); return; }
       if ((expected === 'STUDENT' && role !== 'STUDENT') ||
           (expected === 'PARENT' && role !== 'PARENT') ||
