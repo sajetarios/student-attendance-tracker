@@ -111,7 +111,7 @@ test('device encryption, scope matching and cache controls preserve online permi
 test('gate offline preparation requires one complete release cache, not an obsolete cache',async()=>{
  const vm=require('node:vm'),js=read('public/gate-offline.js');
  const source=js.slice(js.indexOf('async function registerShell(){'),js.indexOf('async function prepare(){'));
- const files=new Map([['attendigo-v359-old',new Set(['/gate-offline.html'])],['attendigo-v474-current',new Set(['/gate-offline.html','/gate-offline.js?v=5','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'])]]);
+ const files=new Map([['attendigo-v359-old',new Set(['/gate-offline.html'])],['attendigo-v474-current',new Set(['/gate-offline.html','/gate-offline.js?v=6','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'])]]);
  const caches={keys:async()=>[...files.keys()],match:async(asset,{cacheName})=>files.get(cacheName).has(asset)?{ok:true}:undefined};
  const registerShell=vm.runInNewContext(source+'\nregisterShell',{navigator:{serviceWorker:{register:async()=>{},ready:Promise.resolve()}},window:{caches},caches});
  await registerShell();
@@ -135,4 +135,26 @@ test('the primary Gatekeeper scanner action routes offline before opening the on
  let click,target,opened=0;
  vm.runInNewContext(js.slice(start,end),{$:()=>({addEventListener:(event,fn)=>{click=fn;}}),studentQrScanner:null,user:{role:'GATE_KEEPER'},navigator:{onLine:false},window:{location:{assign:path=>{target=path;}}},startStudentScanner:async()=>{opened++;}});
  await click();assert.equal(target,'/gate-offline.html');assert.equal(opened,0);
+});
+
+
+test('real encrypted Gatekeeper device unlock distinguishes a wrong passphrase, malformed storage and wrong account without rewriting data',async()=>{
+ const vm=require('node:vm'),{webcrypto:crypto}=require('node:crypto');
+ const js=read('public/gate-offline.js');
+ const derive=js.slice(js.indexOf('async function derive('),js.indexOf('async function save('));
+ const unlock=js.slice(js.indexOf('async function decodePrepared('),js.indexOf('async function lock('));
+ const fields=new Map();const $=id=>{if(!fields.has(id))fields.set(id,{});return fields.get(id);};
+ const pass='CaseSensitive-123',scope={role:'GATE_KEEPER',schoolId:'school',userId:'gate'};
+ const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+ const raw=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveKey']);
+ const key=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt,iterations:310000},raw,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+ const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify({scope,events:[]})));
+ const doc={salt:Buffer.from(salt).toString('base64'),iv:Buffer.from(iv).toString('base64'),ciphertext:Buffer.from(cipher).toString('base64')};
+ let stored=doc,match=false;
+ const fn=vm.runInNewContext("let data=null,secretKey=null,salt=null; const encoder=new TextEncoder(),decoder=new TextDecoder(); const un64=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));"+derive+unlock+";unlock",{crypto,TextEncoder,TextDecoder,atob,$,guard:{authorize:async()=>true},readDoc:async()=>stored,matchesGate:()=>match,view:()=>{}});
+ $('pass').value=pass;await assert.rejects(fn(),/different Gatekeeper account or school/);
+ match=true;$('pass').value='wrong-password';await assert.rejects(fn(),/original device passphrase did not unlock/);
+ stored={...doc,iv:''};$('pass').value=pass;await assert.rejects(fn(),/damaged or incomplete/);
+ stored=doc;await fn();assert.equal($('unlockStatus').textContent,'Scanner unlocked.');
+ assert.equal($('pass').value,'');assert.equal($('pass').type,'password');assert.equal(stored,doc);
 });
