@@ -65,6 +65,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   const authorizationConflict=approvedOB&&documentedLeave;
   let status='NOT_SCHEDULED',lateMinutes=0,earlyMinutes=0,needsReview=false;
   if(scheduled&&date<=today)summary.scheduledDays++;
+  if(present&&scheduled)summary.verifiedEvidenceDays++;
   const adjustment=(scheduleAdjustments||[]).find(item=>item.from<=date&&date<=item.to&&(!item.archivedDate||date<item.archivedDate))||null;
   const hours=adjustment&&validHours(adjustment.hours)?adjustment.hours:weekday===6?settings?.saturdayHours:settings?.regularHours;
   if(dayLeaves.length&&dayLeaves.some(l=>['AM','PM'].includes(l.leaveSession))){
@@ -83,7 +84,6 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   }
   // An approved-leave day with a verified DTR punch is an unresolved conflict,
   // not an ordinary day present until an authorized attendance review resolves it.
-  if(present&&scheduled)summary.verifiedEvidenceDays++;
   if(scheduled&&present&&past&&verifiedCount<4){summary.partialRecordDays++;needsReview=true;}
   if(authorizationConflict){status='OB_LEAVE_CONFLICT';needsReview=true;}
   else if(!scheduled){status=present?'UNSCHEDULED_PUNCH':'NOT_SCHEDULED';if(present)needsReview=true;}
