@@ -80,7 +80,7 @@ test('Leave approval changes no actual gate/DTR punch and stores certified charg
  assert.doesNotMatch(routes,/INSERT INTO teacher_gate_events/i);
  assert.doesNotMatch(routes,/UPDATE staff_attendance_events/i);
  assert.doesNotMatch(routes,/INSERT INTO staff_attendance_events/i);
- assert.match(routes,/staff_form48_approved_leaves\(leave_id,school_id,staff_user_id,leave_type,start_date,end_date,approval_reference,recorded_by_user_id,credit_account\)/);
+ assert.match(routes,/staff_form48_approved_leaves\(leave_id,school_id,staff_user_id,leave_type,start_date,end_date,approval_reference,recorded_by_user_id,credit_account,leave_session,session_start,session_end\)/);
  assert.match(report,/credit_account AS \\"creditAccount\\"/);
  assert.match(report,/pendingSickLeaves:pendingSickLeaves\.rows/);
  assert.match(read('public/form48-report.js'),/SICK_LEAVE_PENDING/);

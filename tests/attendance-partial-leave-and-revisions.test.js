@@ -64,3 +64,15 @@ test('cancellation restores original net debit once, and no applicant or Departm
  assert.equal(allowReviewer('DEPARTMENT_HEAD','reviewer',null,row,'REVISION'),false);
  assert.equal(allowReviewer('SCHOOL_ADMIN','reviewer',null,{...row,requester_role:'PRINCIPAL'},'REVISION'),true);
 });
+
+test('duty-side manual verification accepts only opposite session and valid local time',()=>{
+ const {dutySlotWithinSession}=require('../staff-leave-sessions');
+ const a={leaveSession:'AM',leaveStart:'08:00',leaveEnd:'12:00',dutyStart:'13:00',dutyEnd:'17:00'};
+ assert.equal(dutySlotWithinSession({...a,slot:'PM_IN',time:'12:55'}),true);
+ assert.equal(dutySlotWithinSession({...a,slot:'PM_OUT',time:'17:20'}),true);
+ assert.equal(dutySlotWithinSession({...a,slot:'AM_IN',time:'08:00'}),false);
+ assert.equal(dutySlotWithinSession({...a,slot:'PM_IN',time:'11:45'}),false);
+ const p={leaveSession:'PM',leaveStart:'13:00',leaveEnd:'17:00',dutyStart:'08:00',dutyEnd:'12:00'};
+ assert.equal(dutySlotWithinSession({...p,slot:'AM_OUT',time:'12:05'}),true);
+ assert.equal(dutySlotWithinSession({...p,slot:'AM_OUT',time:'17:20'}),false);
+});

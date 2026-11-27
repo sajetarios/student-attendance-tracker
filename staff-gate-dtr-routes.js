@@ -171,7 +171,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
     [schoolId+':leave:'+teacherId]);
    const {getStaffLeaveStatus,requiresDtrReview}=require('./staff-approved-leave-status');
    const leave=await getStaffLeaveStatus(client,schoolId,teacherId);
-   if(requiresDtrReview(leave)){
+   if(requiresDtrReview(leave)&&!(['AM','PM'].includes(leave.leaveSession)&&await require('./staff-leave-sessions').partialDutySlotAllowed(client,schoolId,teacherId,schoolDate,slot))){
     await client.query('ROLLBACK');
     return res.status(409).json({
      error:'Leave is active on this school date. Physical gate movement may be recorded, but a manual DTR punch requires authorized attendance and leave reconciliation.',

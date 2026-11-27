@@ -26,4 +26,37 @@ async function certifiedSession(db,schoolId,staffId,date,session){
  if(!validHours(hours))return null;
  return {start:hours[session+'_IN'],end:hours[session+'_OUT']};
 }
-module.exports={dateKey,certifiedSession};
+// Only a single explicitly approved half-day may permit the other session.
+// Full/legacy leave, two half-days, changed hours, OB at the punch time, or
+// mismatched dates fail closed. Caller retains all existing verification rules.
+function dutySlotWithinSession({slot,time,leaveSession,leaveStart,leaveEnd,dutyStart,dutyEnd}){
+ if(!['AM','PM'].includes(leaveSession)||!['AM_IN','AM_OUT','PM_IN','PM_OUT'].includes(slot)||slot.startsWith(leaveSession+'_'))return false;
+ const minute=s=>typeof s==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(s)?Number(s.slice(0,2))*60+Number(s.slice(3)):NaN;
+ const [at,ls,le,ds,de]=[time,leaveStart,leaveEnd,dutyStart,dutyEnd].map(minute);
+ if([at,ls,le,ds,de].some(x=>!Number.isFinite(x))||ls>=le||ds>=de)return false;
+ if(leaveSession==='AM'&&(at<le||ds<le))return false;
+ if(leaveSession==='PM'&&(at>=ls||de>ls))return false;
+ return slot.endsWith('_IN')?at>=Math.max(0,ds-240)&&at<=de:at>=ds;
+}
+async function partialDutySlotAllowed(db,schoolId,staffId,date,slot,eventAt=null){
+ const approval=await db.query(`SELECT leave_session AS session,left(session_start::text,5) AS start,left(session_end::text,5) AS "end"
+ FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL
+ AND start_date<=$3::date AND end_date>=$3::date`,[schoolId,staffId,date]);
+ if(approval.rows.length!==1||!['AM','PM'].includes(approval.rows[0].session))return false;
+ const a=approval.rows[0],duty=a.session==='AM'?'PM':'AM';
+ if(!slot.startsWith(duty+'_'))return false;
+ const clock=await db.query(`SELECT to_char(COALESCE($4::timestamptz,NOW()) AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS date,
+ to_char(COALESCE($4::timestamptz,NOW()) AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,
+ (EXISTS(SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2 AND teacher_status='ON_LEAVE'
+ AND leave_start_date<=$3::date AND expected_return_date>=$3::date)
+ OR EXISTS(SELECT 1 FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
+ AND starts_at<=COALESCE($4::timestamptz,NOW())
+ AND (CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END)>COALESCE($4::timestamptz,NOW()))) AS blocked`,[schoolId,staffId,date,eventAt]);
+ const actual=clock.rows[0];
+ if(!actual||actual.date!==date||actual.blocked!==false)return false;
+ const currentLeave=await certifiedSession(db,schoolId,staffId,date,a.session);
+ const currentDuty=await certifiedSession(db,schoolId,staffId,date,duty);
+ if(!currentLeave||!currentDuty||currentLeave.start!==a.start||currentLeave.end!==a.end)return false;
+ return dutySlotWithinSession({slot,time:actual.time,leaveSession:a.session,leaveStart:a.start,leaveEnd:a.end,dutyStart:currentDuty.start,dutyEnd:currentDuty.end});
+}
+module.exports={dateKey,certifiedSession,partialDutySlotAllowed,dutySlotWithinSession};

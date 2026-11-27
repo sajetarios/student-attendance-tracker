@@ -84,7 +84,7 @@ test('Presenter entry is hidden for unassigned teachers and visible for either a
 test('No new attendance routes; assets match the current cache and mobile sidebar stays scrollable',()=>{
  const css=read('attendigo-sidebar-adaptive.css');
  assertCachedAsset(html,sw,'portal.js',{minimumVersion:236});
- for(const asset of ['/simplified-workspace.js?v=7','/staff-leave-ui.js?v=13',
+ for(const asset of ['/simplified-workspace.js?v=7','/staff-leave-ui.js?v=14',
   '/staff-ob-ui.js?v=11','/attendigo-presenter-nav.js?v=1']){
   assert.ok(html.includes(asset),asset+' HTML');
   assert.ok(sw.includes('"'+asset+'"'),asset+' shell');
