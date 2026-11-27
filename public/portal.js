@@ -89,7 +89,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     const response = await fetch(url, { ...options, headers, cache: 'no-store' });
     if (response.status === 401) {
-      clearSession();
+      await clearSession();
       window.location.replace('/portal-login.html');
       throw new Error('Your session has expired. Please sign in again.');
     }
@@ -131,8 +131,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     return true;
   }
 
-  function clearSession() {
-    window.AttendigoOfflineAccount?.clear();
+  async function clearSession() {
+    await window.AttendigoOfflineAccount?.clear();
     sessionStorage.removeItem(tokenKey);
     sessionStorage.removeItem(userKey);
     sessionStorage.removeItem('schoolAttendance.expiresAt');
@@ -5629,7 +5629,7 @@ let teacherActionMenuListenersInstalled = false;
     const signIn = document.createElement('button');
     signIn.type = 'button'; signIn.textContent = 'Sign in again';
     signIn.style.cssText = 'background:#e8eef6;color:#193451;border:0;border-radius:10px;padding:12px 18px;font-weight:700';
-    signIn.onclick = () => { clearSession(); window.location.replace('/portal-login.html'); };
+    signIn.onclick = async () => { await clearSession(); window.location.replace('/portal-login.html'); };
     actions.append(retry,signIn);card.append(heading,details,actions);overlay.append(card);document.body.append(overlay);
     document.dispatchEvent(new Event('attendigo:portal-ready'));
   }
@@ -5648,6 +5648,7 @@ let teacherActionMenuListenersInstalled = false;
     }
     user = me.user;
     window.AttendigoOfflineAccount?.record(user,me.expiresAt);
+    await window.AttendigoOfflineAccount?.flushGate?.();
     // Reveal section creation as soon as the authenticated role is known; do not wait for dashboard API loading.
     if ($('createScheduleSection')) $('createScheduleSection').hidden = !['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
     if (user.mustChangePassword) { window.location.replace('/force-password-change.html'); return; }
@@ -6365,7 +6366,7 @@ let teacherActionMenuListenersInstalled = false;
   });
   $('logoutButton').addEventListener('click', async () => {
     try { await api('/api/auth/logout', { method: 'POST' }); } catch { /* clear local session regardless */ }
-    clearSession();
+    await clearSession();
     window.location.replace('/portal-login.html');
   });
 
