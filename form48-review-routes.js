@@ -173,6 +173,7 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
      [req.auth.schoolId,params.staffUserId,from,to]),
     getEmployeeForm48Schedule(pool,req.auth.schoolId,params.staffUserId),
     pool.query("SELECT to_char(start_date,'YYYY-MM-DD') AS \"from\",to_char(end_date,'YYYY-MM-DD') AS \"to\" FROM staff_leave_requests WHERE school_id=$1 AND staff_user_id=$2 AND leave_type='SICK' AND status IN ('PENDING_HEAD','PENDING_ADMIN','PENDING_EXTERNAL') AND start_date<$4::date AND end_date>=$3::date",
+     [req.auth.schoolId,params.staffUserId,from,to]),
     pool.query("SELECT to_char(start_date,'YYYY-MM-DD') AS \"from\",to_char(end_date,'YYYY-MM-DD') AS \"to\" FROM staff_leave_requests WHERE school_id=$1 AND staff_user_id=$2 AND leave_type<>'SICK' AND status IN ('PENDING_HEAD','PENDING_ADMIN','PENDING_EXTERNAL') AND start_date<$4::date AND end_date>=$3::date",
      [req.auth.schoolId,params.staffUserId,from,to]),
     pool.query(`SELECT memo_id AS "memoId",title,
