@@ -411,7 +411,7 @@ window.addEventListener('offline',connectivity);
 window.addEventListener('pagehide',()=>{void stop();secretKey=null;data=null;salt=null;lastScan='';lastScanAt=0;$('pass').value='';$('newPass').value='';$('confirmPass').value='';resetPassVisibility();$('queue').replaceChildren();view();}); // never keep decoded badge tokens after navigation
 window.addEventListener('pageshow',event=>{if(event.persisted)void refreshAccess().catch(()=>deny());}); // restore the unlock controls after a cached page returns
 function deny(){void lock();$('pass').value='';$('newPass').value='';$('confirmPass').value='';resetPassVisibility();$('queue').replaceChildren();for(const id of ['unlockPanel','preparePanel','scanPanel','syncPanel','recoveryPanel'])$(id).hidden=true;$('network').textContent='Offline authorization missing or expired. Reconnect, sign in as the original Gatekeeper in this same app or browser, and unlock the prepared scanner. Do not clear local data.';}
-guard?.watch(()=>{if(!guard.current('GATE_KEEPER')||(data&&!matchesGate(data.scope))){deny();void refreshAccess().catch(()=>deny());}});
+guard?.watch(()=>{if(!guard.current('GATE_KEEPER')||(data&&!matchesGate(data.scope)))deny();});
 async function refreshAccess(){
  if(!await guard?.authorize('GATE_KEEPER')||!guard.current('GATE_KEEPER')){deny();return;}
  connectivity();
