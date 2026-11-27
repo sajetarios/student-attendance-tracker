@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v476-gatekeeper-unlock-diagnostics";
+const CACHE = "attendigo-v477-gatekeeper-device-recovery";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -18,7 +18,7 @@ const OFFLINE_REQUIRED = [
   "/offline-sheet.js?v=8",
   "/attendance-sync-center.js?v=3",
   "/attendance-sync-center.css?v=4",
-  "/gate-offline.js?v=6",
+  "/gate-offline.js?v=7",
   "/student-qr-offline.js?v=4",
   "/student-qr-offline-page.js?v=5",
   "/student-qr-scanner.js?v=6",
@@ -164,7 +164,7 @@ const SHELL = [
   "/offline-attendance.js?v=5",
   "/offline-sheet.html",
   "/gate-offline.html",
-  "/gate-offline.js?v=6",
+  "/gate-offline.js?v=7",
   "/gate-offline-review.html",
   "/gate-offline-review.css?v=1",
   "/gate-offline-review.js?v=1",
