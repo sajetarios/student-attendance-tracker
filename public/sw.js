@@ -167,7 +167,7 @@ const SHELL = [
   "/gate-offline.js?v=10",
   "/gate-offline-review.html",
   "/gate-offline-review.css?v=1",
-  "/gate-offline-review.js?v=1",
+  "/gate-offline-review.js?v=2",
   "/offline-sheet.js?v=8",
   "/manual-folio.css?v=13",
   "/class-attendance-mobile.css?v=1",
