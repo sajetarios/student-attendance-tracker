@@ -545,21 +545,21 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    if(decision==='VERIFY'){
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',
       [req.auth.schoolId+':leave:'+record.staff_user_id]);
-    const leave=await client.query(`SELECT 1 FROM staff_form48_approved_leaves
+    const leave=await client.query(`SELECT 1,leave_session FROM staff_form48_approved_leaves
       WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL
       AND start_date<=$3::date AND end_date>=$3::date
       UNION ALL
-      SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2
+      SELECT 1,'FULL' AS leave_session FROM school_users WHERE school_id=$1 AND user_id=$2
       AND teacher_status='ON_LEAVE' AND leave_start_date<=$3::date
       AND expected_return_date>=$3::date LIMIT 1`,
       [req.auth.schoolId,record.staff_user_id,record.schoolDate]);
-    if(leave.rowCount){
+    if(leave.rowCount&&!(['AM','PM'].includes(leave.rows[0]?.leave_session)&&await require('./staff-leave-sessions').partialDutySlotAllowed(client,req.auth.schoolId,record.staff_user_id,record.schoolDate,record.dtr_slot,record.occurred_at))){
      await client.query('ROLLBACK');
      return res.status(409).json({error:'Approved leave overlaps this scan. Resolve the leave/DTR conflict through the approved review workflow.'});
     }
     const ob=await client.query(`SELECT 1 FROM staff_official_business_requests
       WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
-        AND starts_at<=$3 AND ends_at>=$3 LIMIT 1`,
+        AND starts_at<=$3 AND (CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END)>$3 LIMIT 1`,
       [req.auth.schoolId,record.staff_user_id,record.occurred_at]);
     if(ob.rowCount){await client.query('ROLLBACK');
       return res.status(409).json({error:'Official Business overlaps this scan. Resolve the OB/DTR conflict before verification.'});}
@@ -673,17 +673,17 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    // A DTR punch during an approved leave requires independent reconciliation.
    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',
     [req.auth.schoolId+':leave:'+req.auth.userId]);
-   const leave=await client.query(`SELECT 1 FROM staff_form48_approved_leaves
+   const leave=await client.query(`SELECT 1,leave_session FROM staff_form48_approved_leaves
     WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL
     AND start_date<=$3::date AND end_date>=$3::date
-    UNION ALL SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2
+    UNION ALL SELECT 1,'FULL' AS leave_session FROM school_users WHERE school_id=$1 AND user_id=$2
     AND teacher_status='ON_LEAVE' AND leave_start_date<=$3::date
     AND expected_return_date>=$3::date LIMIT 1`,
     [req.auth.schoolId,req.auth.userId,today]);
-   if(leave.rowCount)reasons.push('APPROVED_LEAVE_CONFLICT');
+   if(leave.rowCount&&!(['AM','PM'].includes(leave.rows[0]?.leave_session)&&await require('./staff-leave-sessions').partialDutySlotAllowed(client,req.auth.schoolId,req.auth.userId,today,row.dtr_slot)))reasons.push('APPROVED_LEAVE_CONFLICT');
    const ob=await client.query(`SELECT 1 FROM staff_official_business_requests
     WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
-    AND starts_at<=NOW() AND ends_at>=NOW() LIMIT 1`,
+    AND starts_at<=NOW() AND (CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END)>NOW() LIMIT 1`,
     [req.auth.schoolId,req.auth.userId]);
    if(ob.rowCount)reasons.push('APPROVED_OB_CONFLICT');
    const closed=await client.query(`SELECT 1 FROM school_calendar_exceptions

@@ -65,7 +65,7 @@ test('redeem uses transaction, tenant-bound challenge lookup and constant-time t
  assert.match(src,/error.code==='23505'/);
 });
 
-function redemptionFixture({role='TEACHER',school='school-a',tokenValid=true,duplicate=false,expired=false}={}){
+function redemptionFixture({role='TEACHER',school='school-a',tokenValid=true,duplicate=false,expired=false,leaveSession=null}={}){
  const {createLunchChallenge}=require('../staff-lunch-challenge');
  const {manilaDate}=require('../staff-lunch-routes');
  const challenge=createLunchChallenge({slot:'AM_OUT'});
@@ -82,7 +82,11 @@ function redemptionFixture({role='TEACHER',school='school-a',tokenValid=true,dup
     rowCount:duplicate?1:0,rows:duplicate?[{verification_status:'VERIFIED'}]:[]};
   if(sql.includes('SELECT setting_value AS point FROM school_settings'))return {
     rowCount:1,rows:[{point:{latitude:9,longitude:125,radiusMeters:120}}]};
-  if(sql.includes('SELECT 1 FROM staff_form48_approved_leaves'))return {rowCount:0,rows:[]};
+  if(sql.includes('SELECT 1,leave_session FROM staff_form48_approved_leaves'))return {rowCount:leaveSession?1:0,rows:leaveSession?[{leave_session:leaveSession}]:[]};
+  if(sql.includes('SELECT leave_session AS session'))return {rowCount:1,rows:[{session:leaveSession,start:'13:00',end:'17:00'}]};
+  if(sql.includes('SELECT to_char(COALESCE($4::timestamptz,NOW())'))return {rowCount:1,rows:[{date:manilaDate(),time:'11:55',blocked:false}]};
+  if(sql.includes('FROM staff_form48_monthly_reviews'))return {rowCount:1,rows:[{workdays:[0,1,2,3,4,5,6],regularHours:{AM_IN:'08:00',AM_OUT:'12:00',PM_IN:'13:00',PM_OUT:'17:00'},saturdayHours:{AM_IN:'08:00',AM_OUT:'12:00',PM_IN:'13:00',PM_OUT:'17:00'}}]};
+  if(sql.includes('FROM staff_form48_school_defaults')||sql.includes('FROM staff_form48_employee_schedules')||sql.includes('FROM school_memoranda')||sql.includes('SELECT exception_type FROM school_calendar_exceptions'))return {rowCount:0,rows:[]};
   if(sql.includes('SELECT 1 FROM staff_official_business_requests'))return {rowCount:0,rows:[]};
   if(sql.includes('SELECT 1 FROM school_calendar_exceptions'))return {rowCount:0,rows:[]};
   if(sql.includes('INSERT INTO staff_attendance_events'))return {
@@ -168,5 +172,13 @@ test('unapproved location blocks teacher issuance and Admin cannot present',asyn
   const f=fixture(role,true,false),res=await execute(f);
   assert.equal(res.code,403);if(role==='TEACHER')assert.equal(res.body.code,'DEPARTMENT_LOCATION_NOT_CONFIGURED');else assert.equal(f.queries.length,0);
   assert.ok(!f.queries.some(q=>q.sql.includes('INSERT INTO staff_attendance_challenges')));
+ }
+});
+
+test('half-day leave guards redemption by actual slot while full-day leave remains pending',async()=>{
+ for(const [leaveSession,expected] of [['FULL','PENDING_VERIFICATION'],['AM','PENDING_VERIFICATION'],['PM','VERIFIED']]){
+  const f=redemptionFixture({leaveSession}),res=await execute(f);
+  assert.equal(res.code,201);assert.equal(res.body.status,expected);
+  if(leaveSession==='FULL'||leaveSession==='AM')assert.ok(!f.queries.some(q=>q.sql.includes('SELECT to_char(COALESCE($4::timestamptz,NOW())')));
  }
 });

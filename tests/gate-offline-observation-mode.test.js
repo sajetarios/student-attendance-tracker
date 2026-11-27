@@ -111,13 +111,13 @@ test('device encryption, scope matching and cache controls preserve online permi
 test('gate offline preparation requires one complete release cache, not an obsolete cache',async()=>{
  const vm=require('node:vm'),js=read('public/gate-offline.js');
  const source=js.slice(js.indexOf('async function registerShell(){'),js.indexOf('async function prepare(){'));
- const files=new Map([['attendigo-v359-old',new Set(['/gate-offline.html'])],['attendigo-v479-gatekeeper-cold-reopen',new Set(['/gate-offline.html','/gate-offline.js?v=9','/offline-account-guard.js?v=2','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'])]]);
+ const files=new Map([['attendigo-v359-old',new Set(['/gate-offline.html'])],['attendigo-v480-attendance-reconciliation',new Set(['/gate-offline.html','/gate-offline.js?v=10','/offline-account-guard.js?v=2','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'])]]);
  const caches={keys:async()=>[...files.keys()],match:async(asset,{cacheName})=>files.get(cacheName).has(asset)?{ok:true}:undefined};
  const MessageChannel=class{constructor(){this.port1={close(){}};this.port2=this.port1;}};
- const controller={postMessage(message,[port]){assert.equal(message.type,'ATTENDIGO_OFFLINE_RELEASE');port.onmessage({data:{offlineRelease:'attendigo-v479-gatekeeper-cold-reopen'}});}};
+ const controller={postMessage(message,[port]){assert.equal(message.type,'ATTENDIGO_OFFLINE_RELEASE');port.onmessage({data:{offlineRelease:'attendigo-v480-attendance-reconciliation'}});}};
  const registerShell=vm.runInNewContext(source+'\nregisterShell',{navigator:{serviceWorker:{register:async()=>{},ready:Promise.resolve(),controller}},window:{caches},caches,MessageChannel,setTimeout,clearTimeout});
  await registerShell();
- files.get('attendigo-v479-gatekeeper-cold-reopen').delete('/vendor/html5-qrcode.min.js');
+ files.get('attendigo-v480-attendance-reconciliation').delete('/vendor/html5-qrcode.min.js');
  files.get('attendigo-v359-old').add('/vendor/html5-qrcode.min.js');
  await assert.rejects(registerShell(),/Offline scanner files are not ready/);
 });

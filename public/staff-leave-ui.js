@@ -93,8 +93,8 @@
    const guidance=document.createElement('span');
    guidance.className='leave-guidance';
    if(status==='ACTIVE'){
-    title.textContent='On Approved Leave';
-    guidance.textContent='Your approved leave is recognized by Form 48 through the end date. '+
+    title.textContent=leave.leaveSession&&leave.leaveSession!=='FULL'?'Approved '+leave.leaveSession+' half-day leave':'On Approved Leave';
+    guidance.textContent=(leave.leaveSession&&leave.leaveSession!=='FULL'?'Only the authorized '+leave.leaveSession+' session is excused. Verify attendance for the remaining session. ':'Your approved leave is recognized by Form 48 through the end date. ')+
       'Physical gate scans remain recorded separately and require review if they overlap leave.';
    }else if(status==='UPCOMING'){
     title.textContent='Approved Leave Scheduled';
@@ -227,6 +227,8 @@
     '<p class="leave-sick-guidance" role="status" aria-live="polite"></p>'+ 
     '<p class="leave-type-guidance" role="status" aria-live="polite"></p>'+
     textInput('startDate','Start date',true,'date')+textInput('endDate','End date',true,'date')+
+    select('leaveSession','Duration',[['FULL','Full day(s)'],['AM','Morning only (half-day)'],['PM','Afternoon only (half-day)']])+
+    '<p class="leave-help">Half-day: select the same date for start and end. Available for eligible sick, vacation or VSC leave, subject to official certification.</p>'+
     '</fieldset><fieldset><legend>Reason and details</legend>'+
     '<label>Reason / purpose (required)<textarea name="reason" rows="2" minlength="3" maxlength="1000" required placeholder="Briefly explain the purpose of your leave"></textarea></label>'+
     '<div class="leave-birthday-advice" role="status" aria-live="polite" hidden>'+
@@ -366,7 +368,7 @@
       attachmentKind.focus();return;
      }
     }
-    const payload=Object.fromEntries(['leaveType','startDate','endDate','reason','details','commutation'].map(k=>[k,String(d.get(k)||'')]));
+    const payload=Object.fromEntries(['leaveType','startDate','endDate','reason','details','commutation','leaveSession'].map(k=>[k,String(d.get(k)||'')]));
     // The application no longer exposes credit selection. Preserve explicit VSC
     // requests and existing verified sick-leave mapping; do not invent an entitlement.
     payload.creditAccount=payload.leaveType==='VSC'?'VSC':payload.leaveType==='SICK'?(certifiedScheme==='TEACHING_VSC'?'VSC':certifiedScheme==='REGULAR_VL_SL'?'SL':'NONE'):payload.leaveType==='VACATION'&&certifiedScheme==='REGULAR_VL_SL'?'VL':'NONE';
@@ -474,7 +476,7 @@
     const card=document.createElement('article');card.className='leave-card';
     card.innerHTML='<div class="leave-card-top"><strong>'+esc(r.staffName)+'</strong>'+
      '<span class="leave-status">'+esc(r.status==='DECLINED_HEAD'?'Declined by Department Head':classify(r.status))+'</span></div>'+
-     '<p>'+esc(classify(r.leaveType))+' · '+esc(safeDate(r.startDate))+' to '+esc(safeDate(r.endDate))+'</p>'+
+     '<p>'+esc(classify(r.leaveType))+' · '+esc(safeDate(r.startDate))+' to '+esc(safeDate(r.endDate))+(r.leaveSession&&r.leaveSession!=='FULL'?' · '+esc(r.leaveSession)+' half-day':'')+'</p>'+
      '<p>'+esc(r.reason)+'</p>'+ 
      (r.status==='DECLINED_HEAD'?'<p class="leave-help">Not endorsed by Department Head. No school review or official approval was recorded.'+(r.staffUserId===user.userId&&r.headNote?' Department reason: '+esc(r.headNote):'')+'</p>':'')+
      (r.leaveType==='SICK'?'<p class="leave-help">Filing: '+

@@ -119,7 +119,7 @@ async function registerShell(){
  // A populated installation cache alone does not establish navigation control.
  // Wait for the controller to activate and identify this release before promising
  // that a newly opened browser can load the scanner with no network.
- const release='attendigo-v479-gatekeeper-cold-reopen';
+ const release='attendigo-v480-attendance-reconciliation';
  const controlled=async()=>{
   const worker=navigator.serviceWorker.controller;
   if(!worker||typeof MessageChannel!=='function')return false;
@@ -140,7 +140,7 @@ async function registerShell(){
  // The service worker installs all public offline dependencies atomically.
  // Check a complete release cache, rather than creating an obsolete cache that
  // the next service-worker activation will delete.
- const assets=['/gate-offline.html','/gate-offline.js?v=9','/offline-account-guard.js?v=2','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
+ const assets=['/gate-offline.html','/gate-offline.js?v=10','/offline-account-guard.js?v=2','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
  for(const cacheName of (await caches.keys()).filter(name=>name===release)){
   const results=await Promise.all(assets.map(asset=>caches.match(asset,{cacheName})));
   if(results.every(response=>response?.ok))return;

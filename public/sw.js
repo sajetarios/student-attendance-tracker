@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v479-gatekeeper-cold-reopen";
+const CACHE = "attendigo-v480-attendance-reconciliation";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -18,7 +18,7 @@ const OFFLINE_REQUIRED = [
   "/offline-sheet.js?v=8",
   "/attendance-sync-center.js?v=3",
   "/attendance-sync-center.css?v=4",
-  "/gate-offline.js?v=9",
+  "/gate-offline.js?v=10",
   "/student-qr-offline.js?v=4",
   "/student-qr-offline-page.js?v=5",
   "/student-qr-scanner.js?v=6",
@@ -117,12 +117,12 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=251",
+  "/portal.js?v=252",
   "/attendigo-help-topics.js?v=4",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=5",
-  "/staff-leave-ui.js?v=13",
-  "/leave-approval-inbox.js?v=3",
+  "/staff-leave-ui.js?v=14",
+  "/leave-approval-inbox.js?v=4",
   "/leave-approval-inbox.css?v=3",
   "/attendigo-presenter-nav.js?v=1",
   "/staff-leave-ui.css?v=8",
@@ -139,7 +139,7 @@ const SHELL = [
   "/teacher-teaching-overview.css?v=3",
   "/teacher-dashboard-v3.js?v=1",
   "/teacher-teaching-overview.js?v=4",
-  "/form48-report.js?v=20",
+  "/form48-report.js?v=22",
   "/missing-scan-ui.js?v=8",
   "/missing-scan-ui.css?v=4",
   "/form48-intelligence.js?v=4",
@@ -164,7 +164,7 @@ const SHELL = [
   "/offline-attendance.js?v=5",
   "/offline-sheet.html",
   "/gate-offline.html",
-  "/gate-offline.js?v=9",
+  "/gate-offline.js?v=10",
   "/gate-offline-review.html",
   "/gate-offline-review.css?v=1",
   "/gate-offline-review.js?v=1",
@@ -402,7 +402,7 @@ self.addEventListener("fetch", event => {
   // Keep scheduling and shared notification UI fresh without breaking offline operation.
   // Notifications change often; always prefer online JS/CSS to avoid old large-text layouts.
   // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
-  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/offline-attendance.js','/attendance-sync-center.js','/attendigo-help.css','/missing-scan-ui.js','/missing-scan-ui.css','/parent-push.js','/parent-push.css','/parent-subject.js','/parent-subject.css','/parent-portal.js','/parent-dashboard.js','/parent-admin.js','/parent-admin.css','/school-memo-banner.js','/school-memo-banner.css','/school-memos-redirect.js','/school-memos.js','/school-memos.css','/principal-dashboard.js','/principal-trusted-campus.js','/principal-dashboard.css','/leave-approval-inbox.js','/leave-approval-inbox.css','/staff-leave-ui.js','/staff-leave-ui.css','/leave-status-indicator.css','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/typography.css','/attendigo-layout-density.css','/attendigo-metric-icons.css','/app-dialog.css','/app-dialog.js','/form48-intelligence.js','/staff-ob-ui.js','/locator-slip-ui.js','/locator-template-library.js','/central-locator-ui.js','/locator-table-suggest.js','/locator-field-library.js','/document-branding.css','/form48-bulk-ui.js','/admin-request-notifications.js','/gate-offline-review.js','/gate-offline.js','/planner.js','/platform-plans-ui.js','/class-qr-teacher.js','/shs-school-ui.js','/flicker-diagnostics.js','/mobile-overflow-repair.css','/user-management-readability.css','/form48-report.css','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js','/attendigo-form-overlap-guard.css','/school-weather-widget.js','/attendigo-signature.css','/simplified-workspace.js','/campus-location-ui.css','/staff-department-location.js','/staff-lunch-ui.js'].includes(url.pathname)) {
+  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/offline-attendance.js','/attendance-sync-center.js','/attendigo-help.css','/missing-scan-ui.js','/missing-scan-ui.css','/parent-push.js','/parent-push.css','/parent-subject.js','/parent-subject.css','/parent-portal.js','/parent-dashboard.js','/parent-admin.js','/parent-admin.css','/school-memo-banner.js','/school-memo-banner.css','/school-memos-redirect.js','/school-memos.js','/school-memos.css','/principal-dashboard.js','/principal-trusted-campus.js','/principal-dashboard.css','/leave-approval-inbox.js','/leave-approval-inbox.css','/staff-leave-ui.js','/staff-leave-ui.css','/leave-status-indicator.css','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/typography.css','/attendigo-layout-density.css','/attendigo-metric-icons.css','/app-dialog.css','/app-dialog.js','/form48-intelligence.js','/staff-ob-ui.js','/locator-slip-ui.js','/locator-template-library.js','/central-locator-ui.js','/locator-table-suggest.js','/locator-field-library.js','/document-branding.css','/form48-bulk-ui.js','/admin-request-notifications.js','/gate-offline-review.js','/gate-offline.js','/planner.js','/platform-plans-ui.js','/class-qr-teacher.js','/shs-school-ui.js','/flicker-diagnostics.js','/mobile-overflow-repair.css','/user-management-readability.css','/form48-report.css','/form48-report.js','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js','/attendigo-form-overlap-guard.css','/school-weather-widget.js','/attendigo-signature.css','/simplified-workspace.js','/campus-location-ui.css','/staff-department-location.js','/staff-lunch-ui.js'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });

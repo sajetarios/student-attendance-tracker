@@ -4,9 +4,9 @@ const fs=require('node:fs');
 const {registerStaffObRoutes}=require('../staff-ob-routes');
 const code=fs.readFileSync('staff-ob-routes.js','utf8');
 const schema=fs.readFileSync('migrations/051_staff_smart_attendance_foundation.sql','utf8');
-function fixture(role='TEACHER',departmentId='d1'){
+function fixture(role='TEACHER',departmentId='d1',conflict=false){
  const handlers=new Map(),queries=[],auth={type:'SCHOOL_USER',schoolId:'s1',userId:'u1',role,departmentId};
- const db={query:async(sql,params)=>{queries.push({sql,params});return {rowCount:1,rows:[{request_id:'id1',status:sql.includes('PENDING_ADMIN')?'APPROVED':'PENDING_ADMIN'}]};},
+ const db={query:async(sql,params)=>{queries.push({sql,params});if(sql.includes('SELECT 1 FROM staff_official_business_requests current_ob'))return {rowCount:conflict?1:0,rows:conflict?[{}]:[]};return {rowCount:1,rows:[{request_id:'id1',staff_user_id:'employee1',status:sql.includes('PENDING_ADMIN')?'APPROVED':'PENDING_ADMIN'}]};},
   release(){}};
  const pool={query:db.query,connect:async()=>db};
  registerStaffObRoutes({get:(p,...h)=>handlers.set('GET '+p,h),post:(p,...h)=>handlers.set('POST '+p,h)},pool,
@@ -205,4 +205,14 @@ test('completion submission, department recommendation, and principal verificati
  assert.match(decision.sql,/o.school_id=\$1 AND o.request_id=\$2 AND o.staff_user_id<>\$3/);
  assert.equal(decision.params[3],'VERIFIED');
  for(const actor of [teacher,head,principal])assert.equal(actor.queries.some(x=>/INSERT INTO staff_attendance_events|DELETE FROM|SET ends_at/.test(x.sql)),false);
+});
+
+test('principal OB approval and completion both roll back on authorization overlap',async()=>{
+ const id='a6831ee2-24db-42b2-9d27-39d130eb11f1';
+ for(const [suffix,body] of [['decide',{decision:'APPROVE',signedAuthorization:true}],['completion-decide',{decision:'APPROVE',evidenceVerified:true}]]){
+  const f=fixture('PRINCIPAL',null,true);
+  const r=await f.call('POST','/api/staff-attendance/official-business/:id/'+suffix,body,{id});
+  assert.equal(r.code,409);assert.ok(f.queries.some(q=>q.sql==='ROLLBACK'));
+  assert.ok(!f.queries.some(q=>q.sql==='COMMIT'||q.sql.includes('INSERT INTO staff_ob_class_coverage')));
+ }
 });

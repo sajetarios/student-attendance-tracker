@@ -252,17 +252,19 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
     }
     if(mode==='DOCUMENT_EXCEPTION')status='DOCUMENTED';
     else{
+     await require('./attendance-authorization-conflicts').lockStaffAuthorization(c,req.auth.schoolId,row.staff_user_id);
      const [dtr,leave,ob,calendar]=await Promise.all([
       c.query('SELECT dtr_slot AS slot,to_char(occurred_at AT TIME ZONE \'Asia/Manila\',\'HH24:MI\') AS time FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND school_date=$3::date AND event_kind=\'DTR_SLOT\' AND verification_status=\'VERIFIED\'',
        [req.auth.schoolId,row.staff_user_id,schoolDate]),
-      c.query('SELECT 1 FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL AND start_date<=$3::date AND end_date>=$3::date LIMIT 1',
+      c.query('SELECT 1,leave_session FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL AND start_date<=$3::date AND end_date>=$3::date LIMIT 1',
        [req.auth.schoolId,row.staff_user_id,schoolDate]),
       c.query('SELECT 1 FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2 AND status=\'APPROVED\' AND starts_at<(($3::date+INTERVAL \'1 day\') AT TIME ZONE \'Asia/Manila\') AND ends_at>($3::date::timestamp AT TIME ZONE \'Asia/Manila\') LIMIT 1',
        [req.auth.schoolId,row.staff_user_id,schoolDate]),
       c.query('SELECT 1 FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date LIMIT 1',
        [req.auth.schoolId,schoolDate])
      ]);
-     if(leave.rowCount||ob.rowCount||calendar.rowCount){
+     const leaveBlocked=leave.rowCount&&!(['AM','PM'].includes(leave.rows[0]?.leave_session)&&await require('./staff-leave-sessions').partialDutySlotAllowed(c,req.auth.schoolId,row.staff_user_id,schoolDate,row.slot,new Date(schoolDate+'T'+verifiedTime+':00+08:00')));
+     if(leaveBlocked||ob.rowCount||calendar.rowCount){
       await c.query('ROLLBACK');return res.status(409).json({error:'Approved leave, OB or a calendar exception requires separate reconciliation. Use documented-exception policy; no official time was created.'});
      }
      const other=Object.fromEntries(dtr.rows.map(x=>[x.slot,x.time]));

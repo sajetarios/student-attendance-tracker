@@ -50,6 +50,7 @@ function fixture(){
    if(s==='COMMIT'){state.commits++;return rows([])}
    if(s.startsWith('ROLLBACK')){state.rollbacks++;return rows([])}
    if(s.includes('pg_advisory_xact_lock'))return rows([]);
+   if(s.includes('SELECT 1 FROM staff_official_business_requests o')&&s.includes('o.starts_at <'))return rows(state.authorizationConflict?[{}]:[]);
    if(s.includes('attendigo_notify')){state.notifications.push(args);return rows([])}
    if(s.startsWith('SELECT department_id,role,active FROM school_users')){
     const u=actors[args[1]];return rows(u?[{department_id:u.department_id,role:u.role,active:true}]:[]);
@@ -68,7 +69,7 @@ function fixture(){
    }
    if(s.startsWith('INSERT INTO staff_leave_requests')){
     const names=['request_id','school_id','staff_user_id','department_id','leave_type',
-     'credit_account','start_date','end_date','reason','details','commutation','status','filing_basis'];
+     'credit_account','start_date','end_date','reason','details','commutation','status','filing_basis','leave_session'];
     state.request=Object.fromEntries(names.map((key,i)=>[key,args[i]]));
     return rows([]);
    }
@@ -94,7 +95,7 @@ function fixture(){
    }
    if(s.startsWith('INSERT INTO staff_form48_approved_leaves')){
     const names=['leave_id','school_id','staff_user_id','leave_type','start_date',
-     'end_date','approval_reference','recorded_by_user_id','credit_account'];
+     'end_date','approval_reference','recorded_by_user_id','credit_account','leave_session','session_start','session_end'];
     state.appliedLeaves.push(Object.fromEntries(names.map((key,i)=>[key,args[i]])));
     return rows([]);
    }

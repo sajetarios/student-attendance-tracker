@@ -2191,6 +2191,9 @@ function coverageStatusLabel(status) {
   function gateLeaveBlocksDtr(person) {
     return ['ACTIVE','ON_LEAVE_REVIEW'].includes(person?.leaveStatus?.status);
   }
+  function gateLeaveBlocksManualDtr(person) {
+    return gateLeaveBlocksDtr(person) && !['AM','PM'].includes(person?.leaveStatus?.leaveSession);
+  }
   function friendlyLeaveDate(iso) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return 'date unavailable';
     return new Intl.DateTimeFormat('en-PH',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric'})
@@ -2206,14 +2209,14 @@ function coverageStatusLabel(status) {
     const leave = person.leaveStatus, active = leave.status === 'ACTIVE';
     el.classList.toggle('leave-review', !active);
     const title = document.createElement('strong');
-    title.textContent = active ? 'On Approved Leave' : 'Leave status on record — HR review';
+    title.textContent = active ? (['AM','PM'].includes(leave.leaveSession)?'Approved '+leave.leaveSession+' half-day leave':'On Approved Leave') : 'Leave status on record — HR review';
     const dates = document.createElement('span');
     dates.className = 'leave-window';
     dates.textContent = friendlyLeaveDate(leave.startDate) + ' – ' +
       friendlyLeaveDate(leave.endDate) + ' (inclusive)';
     const guidance = document.createElement('span');
     guidance.className = 'leave-guidance';
-    guidance.textContent = 'Physical gate movement may be recorded after photo verification. ' +
+    guidance.textContent = (['AM','PM'].includes(leave.leaveSession)?'Only the authorized half-day is excused; use verified DTR for the other session. ':'Physical gate movement may be recorded after photo verification. ') +
       'This does not establish return-to-duty or automatically fill the DTR. ' +
       'Overlapping attendance requires authorized review.';
     el.append(title,dates);
@@ -2297,11 +2300,16 @@ function coverageStatusLabel(status) {
     if (isGateVerification && isTeacherPerson) {
       const fallback = $('studentScanResult').querySelector('.gate-dtr-fallback');
       if (fallback) {
-        fallback.hidden = gateLeaveBlocksDtr(person);
+        fallback.hidden = gateLeaveBlocksManualDtr(person);
+        if(['AM','PM'].includes(person?.leaveStatus?.leaveSession)){
+          const select=fallback.querySelector('#teacherDtrSlot');
+          for(const option of select?.options||[])option.disabled=option.value.startsWith(person.leaveStatus.leaveSession+'_');
+          if(select?.selectedOptions[0]?.disabled)select.value=Array.from(select.options).find(o=>!o.disabled)?.value||'';
+        }
         noticeDtr.appendChild(fallback);
         // This explicit, authorized action also confirms the photo in the same dialog.
         const dtrButton = $('teacherDtrRecord');
-        dtrButton.disabled = !photo || gateLeaveBlocksDtr(person);
+        dtrButton.disabled = !photo || gateLeaveBlocksManualDtr(person);
       }
     }
     $('studentScanNotice').hidden = false;
@@ -2327,7 +2335,7 @@ function coverageStatusLabel(status) {
         !($('teacherGateEventPreview')?.dataset.previewBlocked === 'true');
       $('studentTimeIn').disabled = !verified;
       $('studentTimeOut').disabled = !verified;
-      if ($('teacherDtrRecord')) $('teacherDtrRecord').disabled = !verified || gateLeaveBlocksDtr(scannedTeacher);
+      if ($('teacherDtrRecord')) $('teacherDtrRecord').disabled = !verified || gateLeaveBlocksManualDtr(scannedTeacher);
     });
     $('studentScanClear').addEventListener('click', () => {
       scannedStudent = null; scannedTeacher = null;

@@ -63,7 +63,7 @@ test('manual DTR fallback blocks leave overlaps before any verified DTR slot ins
  assert.match(block,/code:'LEAVE_DTR_REVIEW_REQUIRED'/);
  assert.ok(block.indexOf('requiresDtrReview(leave)')<block.indexOf('INSERT INTO staff_attendance_events'));
  assert.match(block,/ROLLBACK/);
- assert.match(gate,/fallback\.hidden = gateLeaveBlocksDtr\(person\)/);
+ assert.match(gate,/fallback\.hidden = gateLeaveBlocksManualDtr\(person\)/);
 });
 test('profile status uses self-scoped API and never toggles employee account state',()=>{
  const start=leave.indexOf("app.get('/api/staff-leave/my/status'");
@@ -94,4 +94,10 @@ test('PWA refreshes gate and leave status assets rather than trapping older cach
  assertCachedAsset(html,worker,'portal.js',{minimumVersion:233});
  assertCachedAsset(html,worker,'staff-leave-ui.js',{minimumVersion:2});
  assertCachedAsset(html,worker,'leave-status-indicator.css',{minimumVersion:1});
+});
+
+test('partial leave permits only server-validated explicit manual fallback, not automatic gate projection',()=>{
+ assert.match(gate,/function gateLeaveBlocksManualDtr\(person\)/);
+ assert.match(gate,/option.disabled=option.value.startsWith\(person.leaveStatus.leaveSession/);
+ assert.match(dtr,/partialDutySlotAllowed/);
 });

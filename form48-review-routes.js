@@ -155,10 +155,11 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
      " exception_type AS type FROM school_calendar_exceptions"+
      " WHERE school_id=$1 AND calendar_date >= $2::date AND calendar_date < $3::date",
      [req.auth.schoolId,from,to]),
-    pool.query("SELECT to_char((starts_at AT TIME ZONE 'Asia/Manila')::date,'YYYY-MM-DD') AS "+
+    pool.query("SELECT starts_at AS \"startsAt\",ends_at AS \"endsAt\",completion_status AS \"completionStatus\",completion_at AS \"completionAt\", "+
+     "to_char((starts_at AT TIME ZONE 'Asia/Manila')::date,'YYYY-MM-DD') AS "+
      ' "from", to_char(((CASE WHEN completion_status=\'VERIFIED\' THEN GREATEST(ends_at,completion_at) ELSE ends_at END) AT TIME ZONE \'Asia/Manila\')::date,\'YYYY-MM-DD\') AS "to"'+
      " FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2"+
-     " AND status='APPROVED' AND (CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END)>=($3::date::timestamp AT TIME ZONE 'Asia/Manila')"+
+     " AND status='APPROVED' AND (CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END)>($3::date::timestamp AT TIME ZONE 'Asia/Manila')"+
      " AND starts_at<($4::date::timestamp AT TIME ZONE 'Asia/Manila')",
      [req.auth.schoolId,params.staffUserId,from,to]),
     pool.query("SELECT teacher_status, to_char(leave_start_date,'YYYY-MM-DD') AS leave_start_date,"+
@@ -166,7 +167,7 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
      ' WHERE school_id=$1 AND user_id=$2',[req.auth.schoolId,params.staffUserId]),
     getSchoolForm48Defaults(pool,req.auth.schoolId),
     pool.query("SELECT to_char(start_date,'YYYY-MM-DD') AS \"from\","+
-     " to_char(end_date,'YYYY-MM-DD') AS \"to\", leave_type AS \"leaveType\", credit_account AS \"creditAccount\", approval_reference AS \"approvalReference\" FROM staff_form48_approved_leaves"+
+     " to_char(end_date,'YYYY-MM-DD') AS \"to\", leave_type AS \"leaveType\", credit_account AS \"creditAccount\", leave_session AS \"leaveSession\", left(session_start::text,5) AS \"sessionStart\", left(session_end::text,5) AS \"sessionEnd\", approval_reference AS \"approvalReference\" FROM staff_form48_approved_leaves"+
      " WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL"+
      " AND start_date<$4::date AND end_date>=$3::date",
      [req.auth.schoolId,params.staffUserId,from,to]),

@@ -13,7 +13,7 @@ const STATUS_LABELS=Object.freeze({
 function canUseInbox(role){return ['PRINCIPAL','SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(role);}
 function scopeFor(auth){
  const args=[auth.schoolId];
- if(auth.role==='PRINCIPAL')return {where:"r.school_id=$1 AND u.role<>'PRINCIPAL' AND r.status IN ('PENDING_ADMIN','PENDING_EXTERNAL','APPROVED','REJECTED')",args};
+ if(auth.role==='PRINCIPAL')return {where:"r.school_id=$1 AND u.role<>'PRINCIPAL' AND r.status IN ('PENDING_ADMIN','PENDING_EXTERNAL','APPROVED','REJECTED','CANCELLED')",args};
  if(auth.role==='DEPARTMENT_HEAD'){
   args.push(auth.departmentId||null);
   return {where:"r.school_id=$1 AND r.department_id=$2",args};
@@ -37,7 +37,8 @@ function publicInboxRecord(r,auth){
  const actions={
   recommend:allowReviewer(auth.role,auth.userId,auth.departmentId,r,'HEAD'),
   schoolReview:allowReviewer(auth.role,auth.userId,auth.departmentId,r,'ADMIN'),
-  recordOfficialDecision:allowReviewer(auth.role,auth.userId,auth.departmentId,r,'EXTERNAL')
+  recordOfficialDecision:allowReviewer(auth.role,auth.userId,auth.departmentId,r,'EXTERNAL'),
+  revise:allowReviewer(auth.role,auth.userId,auth.departmentId,r,'REVISION')
  };
  return {
   requestId:r.request_id,
@@ -46,7 +47,7 @@ function publicInboxRecord(r,auth){
   departmentName:r.department_name||'',
   staffRole:r.requester_role,
   startDate:r.start_date,
-  endDate:r.end_date,
+  endDate:r.end_date,leaveSession:r.leave_session||'FULL',revision:r.revision,certifiedWorkingDays:r.certified_working_days,
   leaveType:own||['SCHOOL_ADMIN','PRINCIPAL'].includes(auth.role)?r.leave_type:null,
   creditAccount:own||auth.role==='SCHOOL_ADMIN'?r.credit_account:null,
   status:r.status,

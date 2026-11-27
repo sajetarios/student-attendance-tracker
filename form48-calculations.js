@@ -1,6 +1,8 @@
 'use strict';
 // Draft monthly Form 48 calculation from verified staff punches.
 // Missing punches are evidence gaps, never automatic approved absences.
+const {obCoverageForDate,calculateObBoundaryGaps}=require('./attendance-reconciliation');
+const {assessPartialLeave}=require('./attendance-partial-leave');
 const SLOTS=['AM_IN','AM_OUT','PM_IN','PM_OUT'];
 const isTime=value=>typeof value==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 const minuteOf=value=>isTime(value)?Number(value.slice(0,2))*60+Number(value.slice(3,5)):null;
@@ -49,18 +51,38 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   const scheduled=configured&&(exception==='OPEN'||workdays.includes(weekday))&&exception!=='CLOSED';
   const past=isoDate(today)&&date<today;
   const present=verifiedCount>0;
-  const approvedOB=(officialBusiness||[]).some(b=>date>=b.from&&date<=b.to);
+  const obCoverage=obCoverageForDate(date,officialBusiness||[]);
+  const approvedOB=obCoverage.approved;
   const leaveDay=leave?.from&&leave?.to&&date>=leave.from&&date<=leave.to;
-  const documentedLeave=(approvedLeaves||[]).some(p=>p.from&&p.to&&date>=p.from&&date<=p.to);
+  const dayLeaves=(approvedLeaves||[]).filter(p=>p.from&&p.to&&date>=p.from&&date<=p.to);
+  const documentedLeave=dayLeaves.length>0;
   const sickFilingPending=(pendingSickLeaves||[]).some(p=>p.from&&p.to&&date>=p.from&&date<=p.to);
   const review=reviews[date]||'PENDING';
+  const authorizationConflict=approvedOB&&documentedLeave;
   let status='NOT_SCHEDULED',lateMinutes=0,earlyMinutes=0,needsReview=false;
   if(scheduled&&date<=today)summary.scheduledDays++;
+  const adjustment=(scheduleAdjustments||[]).find(item=>item.from<=date&&date<=item.to&&(!item.archivedDate||date<item.archivedDate))||null;
+  const hours=adjustment&&validHours(adjustment.hours)?adjustment.hours:weekday===6?settings?.saturdayHours:settings?.regularHours;
+  if(dayLeaves.length&&dayLeaves.some(l=>['AM','PM'].includes(l.leaveSession))){
+   const partial=assessPartialLeave({leaves:dayLeaves,slots,hours,obCoverage,scheduled,past,date,today,legacyLeave:leaveDay,review});
+   if(exception==='SHORTENED_DAY'&&!adjustment){partial.needsReview=true;partial.status='PARTIAL_LEAVE_REVIEW';partial.lateMinutes=0;partial.undertimeMinutes=0;partial.presentDays=0;partial.leaveDays=0;}
+   summary.daysPresent+=partial.presentDays;summary.approvedLeaveDays+=partial.leaveDays;summary.excusedDays+=partial.leaveDays;
+   if(summary.tardyMinutes!==null)summary.tardyMinutes+=partial.lateMinutes;
+   if(summary.undertimeMinutes!==null)summary.undertimeMinutes+=partial.undertimeMinutes;
+   if(partial.lateMinutes)summary.tardyDays++;if(partial.undertimeMinutes)summary.undertimeDays++;
+   if(partial.needsReview){summary.unresolvedDays++;summary.hasUnreviewed=true;summary.incompleteTimingDays++;}
+   assessments.push({date,day,weekday,status:partial.status,scheduled,past,verifiedCount,verifiedSlots:SLOTS.filter(k=>isTime(slots[k])),
+    lateMinutes:partial.lateMinutes,undertimeMinutes:partial.undertimeMinutes,needsReview:partial.needsReview,approvedOB:Boolean(approvedOB),
+    authorizationConflict:partial.status==='OB_LEAVE_CONFLICT',leaveDay:true,approvedLeave:true,partialLeave:true,approvedLeaveDays:partial.leaveDays,
+    sickLeavePending:Boolean(sickFilingPending),calendarException:exception||null,review,temporaryMemoId:adjustment?.memoId||null,temporaryHours:adjustment?.hours||null});
+   continue;
+  }
   // An approved-leave day with a verified DTR punch is an unresolved conflict,
   // not an ordinary day present until an authorized attendance review resolves it.
   if(present&&scheduled&&!documentedLeave){summary.daysPresent++;}
   if(scheduled&&present&&past&&verifiedCount<4){summary.partialRecordDays++;needsReview=true;}
-  if(!scheduled){status=present?'UNSCHEDULED_PUNCH':'NOT_SCHEDULED';}
+  if(authorizationConflict){status='OB_LEAVE_CONFLICT';needsReview=true;}
+  else if(!scheduled){status=present?'UNSCHEDULED_PUNCH':'NOT_SCHEDULED';if(present)needsReview=true;}
   else if(documentedLeave&&!present&&date>today){
    // Future approved leave is scheduled, not yet a completed excused day.
    status='UPCOMING_APPROVED_LEAVE';
@@ -88,10 +110,6 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   else if(review==='EXCUSED'&&past){status='EXCUSED';summary.excusedDays++;}
   else if(review==='ABSENT'&&past){status='CONFIRMED_ABSENT';summary.daysAbsent++;}
   else if(past){status='MISSING_REVIEW';summary.pendingAbsentDays++;needsReview=true;}
-  const adjustment=(scheduleAdjustments||[]).find(item=>item.from<=date&&date<=item.to&&
-   (!item.archivedDate||date<item.archivedDate))||null;
-  const hours=adjustment&&validHours(adjustment.hours)?adjustment.hours:
-   weekday===6?settings?.saturdayHours:settings?.regularHours;
   const anomalous=scheduled&&present&&!approvedOB&&!leaveDay&&!documentedLeave&&
    exception!=='SHORTENED_DAY'&&implausibleSlot(slots,hours);
   if(anomalous){status='TIME_SLOT_REVIEW';needsReview=true;summary.timeAnomalyDays++;summary.incompleteTimingDays++;}
@@ -116,10 +134,22 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
    }
   }else if(scheduled&&present&&past&&(approvedOB||leaveDay||documentedLeave||exception==='SHORTENED_DAY')){
    summary.incompleteTimingDays++;needsReview=true;
+   // OB dates remain draft/review-only; compute only evidenced, uncovered session boundaries.
+   if(approvedOB&&!leaveDay&&!documentedLeave&&exception!=='SHORTENED_DAY'){
+    status='APPROVED_OB_REVIEW';
+    const timing=calculateObBoundaryGaps(slots,hours,obCoverage);
+    if(timing){
+     lateMinutes=timing.lateMinutes;earlyMinutes=timing.undertimeMinutes;
+     if(summary.tardyMinutes!==null)summary.tardyMinutes+=lateMinutes;
+     if(summary.undertimeMinutes!==null)summary.undertimeMinutes+=earlyMinutes;
+     if(lateMinutes)summary.tardyDays++;
+     if(earlyMinutes)summary.undertimeDays++;
+    }
+   }
   }
   if(needsReview){summary.unresolvedDays++;summary.hasUnreviewed=true;}
   assessments.push({date,day,weekday,status,scheduled,past,verifiedCount,
-   lateMinutes,undertimeMinutes:earlyMinutes,needsReview,timeAnomaly:Boolean(anomalous),approvedOB:Boolean(approvedOB),
+   lateMinutes,undertimeMinutes:earlyMinutes,needsReview,timeAnomaly:Boolean(anomalous),approvedOB:Boolean(approvedOB),authorizationConflict:Boolean(authorizationConflict),
    leaveDay:Boolean(leaveDay||documentedLeave),approvedLeave:Boolean(documentedLeave),
    sickLeavePending:Boolean(sickFilingPending),calendarException:exception||null,review,
    temporaryMemoId:adjustment?.memoId||null,temporaryHours:adjustment?.hours||null});

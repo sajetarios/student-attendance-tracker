@@ -2,6 +2,7 @@
 // School Admin-only Form 48 defaults and approved-leave transcription.
 // These records never generate, modify or substitute verified attendance punches.
 const {randomUUID}=require('node:crypto');
+const {lockStaffAuthorization,approvedObOverlapsLeave}=require('./attendance-authorization-conflicts');
 const {validHours}=require('./form48-calculations');
 const UUID=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const MONTH=/^\d{4}-(0[1-9]|1[0-2])$/;
@@ -211,7 +212,7 @@ function registerForm48BulkRoutes(app,pool,{authenticateSchoolClient,requireScho
   try{
    const rows=await pool.query(
     'SELECT l.leave_id AS "leaveId",l.staff_user_id AS "staffUserId",'+
-    ' s.display_name AS "displayName",l.leave_type AS "leaveType",'+
+    ' s.display_name AS "displayName",l.leave_type AS "leaveType",l.leave_session AS "leaveSession",'+
     ' to_char(l.start_date,\'YYYY-MM-DD\') AS "startDate",'+
     ' to_char(l.end_date,\'YYYY-MM-DD\') AS "endDate",l.approval_reference AS "approvalReference"'+
     ' FROM staff_form48_approved_leaves l JOIN school_users s'+
@@ -237,6 +238,7 @@ function registerForm48BulkRoutes(app,pool,{authenticateSchoolClient,requireScho
   try{
    await client.query('BEGIN');
    const ids=[...new Set(entries.map(e=>e.staffUserId))].sort();
+   for(const id of ids)await lockStaffAuthorization(client,req.auth.schoolId,id);
    const employees=await client.query(
     "SELECT user_id FROM school_users WHERE school_id=$1 AND user_id=ANY($2::uuid[])"+
     " AND role IN ('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER') FOR UPDATE",
@@ -246,6 +248,8 @@ function registerForm48BulkRoutes(app,pool,{authenticateSchoolClient,requireScho
     return res.status(404).json({error:'One or more employees do not belong to this school.'});
    }
    for(const item of entries){
+    if(await approvedObOverlapsLeave(client,req.auth.schoolId,item.staffUserId,item.startDate,item.endDate)){
+     await client.query('ROLLBACK');return res.status(409).json({error:'Approved leave overlaps Official Business. Reconcile the authorizations first.'});}
     const collision=await client.query(
      'SELECT leave_id FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2'+
      ' AND revoked_at IS NULL AND start_date<=$4::date AND end_date>=$3::date LIMIT 1',
@@ -289,6 +293,8 @@ function registerForm48BulkRoutes(app,pool,{authenticateSchoolClient,requireScho
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
+   const linked=await client.query('SELECT 1 FROM staff_leave_requests WHERE school_id=$1 AND form48_leave_id=$2 LIMIT 1',[req.auth.schoolId,leaveId]);
+   if(linked.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'This leave is linked to an official application and its credit ledger. An authorized leave amendment is required; it cannot be revoked from Form 48.'});}
    const updated=await client.query(
     'UPDATE staff_form48_approved_leaves SET revoked_at=NOW(),revoked_by_user_id=$3'+
     ' WHERE leave_id=$2 AND school_id=$1 AND revoked_at IS NULL RETURNING staff_user_id',

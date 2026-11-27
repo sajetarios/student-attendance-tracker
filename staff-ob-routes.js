@@ -1,6 +1,7 @@
 'use strict';
 const {randomUUID}=require('node:crypto');
 const express=require('express');
+const {approvedObConflicts}=require('./attendance-authorization-conflicts');
 const uuid=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const roles=['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'];
 function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
@@ -355,9 +356,11 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
      WHERE o.school_id=$1 AND o.request_id=$2 AND o.staff_user_id<>$3
       AND o.status='APPROVED' AND o.completion_status='PENDING_PRINCIPAL'
       AND EXISTS(SELECT 1 FROM school_users u WHERE u.school_id=o.school_id AND u.user_id=o.staff_user_id AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'))
-     RETURNING completion_status,completion_at`,[req.auth.schoolId,req.params.id,req.auth.userId,
+     RETURNING completion_status,completion_at,staff_user_id`,[req.auth.schoolId,req.params.id,req.auth.userId,
       decision==='APPROVE'?'VERIFIED':'REJECTED',note||null]);
    if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Completion not awaiting Principal verification, already decided, or self-approval prohibited.'});}
+   if(decision==='APPROVE'&&await approvedObConflicts(client,req.auth.schoolId,result.rows[0].staff_user_id,req.params.id)){
+    await client.query('ROLLBACK');return res.status(409).json({error:'Verified completion would overlap approved leave or another OB. Reconcile the authorizations first.'});}
    await audit(client,req,decision==='APPROVE'?'STAFF_OB_COMPLETION_VERIFIED':'STAFF_OB_COMPLETION_PRINCIPAL_REJECTED',req.params.id,
     {note,evidenceVerified:decision==='APPROVE',completedAt:result.rows[0].completion_at});
    await client.query('COMMIT');return res.json({requestId:req.params.id,completionStatus:result.rows[0].completion_status});
@@ -419,6 +422,8 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
     // Only the assigned regular teacher's active, weekday-matching periods are
     // included; actual lesson-time overlap is checked in Asia/Manila.
     if(decision==='APPROVE'){
+      if(await approvedObConflicts(client,req.auth.schoolId,result.rows[0].staff_user_id,req.params.id)){
+       await client.query('ROLLBACK');return res.status(409).json({error:'OB overlaps approved leave or another approved OB. Reconcile the authorizations first.'});}
       const affected=await client.query(`
        INSERT INTO staff_ob_class_coverage
         (school_id,request_id,period_id,class_date,status)

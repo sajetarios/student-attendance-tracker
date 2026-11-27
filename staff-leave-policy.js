@@ -12,18 +12,21 @@ function parseRequest(body){
   account=String(x.creditAccount||'NONE').toUpperCase(),
   startDate=String(x.startDate||''),endDate=String(x.endDate||''),
   reason=String(x.reason||'').trim(),details=String(x.details||'').trim(),
-  commutation=x.commutation==='REQUESTED'?'REQUESTED':'NOT_REQUESTED';
+  commutation=x.commutation==='REQUESTED'?'REQUESTED':'NOT_REQUESTED',
+  leaveSession=String(x.leaveSession||'FULL').toUpperCase();
  if(!TYPES.includes(leaveType)||!ACCOUNTS.includes(account)||!dateSpan(startDate,endDate)
   ||reason.length<3||reason.length>1000||details.length>1500)return null;
+ if(!['FULL','AM','PM'].includes(leaveSession)||
+  (leaveSession!=='FULL'&&(startDate!==endDate||!['SICK','VACATION','VSC'].includes(leaveType))))return null;
  if(leaveType==='VSC'&&account!=='VSC')return null;
  if(['MATERNITY','PATERNITY',...NON_COMMUTABLE].includes(leaveType)&&account!=='NONE')return null;
  if(NON_COMMUTABLE.includes(leaveType)&&commutation!=='NOT_REQUESTED')return null;
- return {leaveType,creditAccount:account,startDate,endDate,reason,details,commutation};
+ return {leaveType,creditAccount:account,startDate,endDate,reason,details,commutation,leaveSession};
 }
 function positiveDays(n){const x=Number(n);return Number.isFinite(x)&&x>0&&x<=366&&Math.abs(x*1000-Math.round(x*1000))<1e-7?x:null;}
 function canView(role,actorId,actorDepartment,request){
  return actorId===request.staff_user_id||role==='SCHOOL_ADMIN'||
-  (role==='PRINCIPAL'&&request.requester_role!=='PRINCIPAL'&&['PENDING_ADMIN','PENDING_EXTERNAL','APPROVED','REJECTED'].includes(request.status))||
+  (role==='PRINCIPAL'&&request.requester_role!=='PRINCIPAL'&&['PENDING_ADMIN','PENDING_EXTERNAL','APPROVED','REJECTED','CANCELLED'].includes(request.status))||
   (role==='DEPARTMENT_HEAD'&&actorDepartment&&actorDepartment===request.department_id);
 }
 function nextStatus(role,hasActiveHead){
@@ -34,6 +37,8 @@ function allowReviewer(role,actorId,actorDepartment,request,action){
  if(actorId===request.staff_user_id)return false;
  if(action==='HEAD')return role==='DEPARTMENT_HEAD'&&request.status==='PENDING_HEAD'
   &&actorDepartment===request.department_id;
+ if(action==='REVISION')return request.status==='APPROVED'&&
+  (request.requester_role==='PRINCIPAL'?role==='SCHOOL_ADMIN':role==='PRINCIPAL');
  if(action==='ADMIN')return false; // Staff leave moves directly from department recommendation to Principal.
  if(action==='EXTERNAL'){
   if(request.requester_role==='PRINCIPAL')return role==='SCHOOL_ADMIN'&&request.status==='PENDING_EXTERNAL';
