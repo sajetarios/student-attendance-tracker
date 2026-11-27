@@ -7041,6 +7041,8 @@ let teacherActionMenuListenersInstalled = false;
   $('studentScannerToggle').addEventListener('click', async () => {
     if (studentQrScanner?.isScanning) { await stopStudentScanner(); return; }
     if (user.role === 'GATE_KEEPER') {
+      // Offline capture is a separate, encrypted, role-checked workspace.
+      if (navigator.onLine === false) { window.location.assign('/gate-offline.html'); return; }
       // Gatekeepers have one authorized scope. Avoid making nontechnical guards
       // configure a mode before every scan; teacher class setup is unchanged.
       activeScanScope = 'SCHOOL';

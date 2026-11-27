@@ -78,6 +78,9 @@ function showOfflineRole(){
 }
 showOfflineRole();roleGuard?.watch(showOfflineRole);
 async function refreshOfflineRole(){await roleGuard?.authorize();showOfflineRole();}
+// A device can report Wi-Fi connected while the server is unreachable. Recover
+// only the existing bounded installed stamp via authorize's fail-closed path.
+void refreshOfflineRole();
 const retryButton = document.getElementById('retry');
 const heading = document.getElementById('connection-heading');
 const hint = document.getElementById('connection-hint');

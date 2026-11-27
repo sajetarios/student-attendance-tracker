@@ -111,7 +111,7 @@ test('device encryption, scope matching and cache controls preserve online permi
 test('gate offline preparation requires one complete release cache, not an obsolete cache',async()=>{
  const vm=require('node:vm'),js=read('public/gate-offline.js');
  const source=js.slice(js.indexOf('async function registerShell(){'),js.indexOf('async function prepare(){'));
- const files=new Map([['attendigo-v359-old',new Set(['/gate-offline.html'])],['attendigo-v474-current',new Set(['/gate-offline.html','/gate-offline.js?v=4','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'])]]);
+ const files=new Map([['attendigo-v359-old',new Set(['/gate-offline.html'])],['attendigo-v474-current',new Set(['/gate-offline.html','/gate-offline.js?v=5','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'])]]);
  const caches={keys:async()=>[...files.keys()],match:async(asset,{cacheName})=>files.get(cacheName).has(asset)?{ok:true}:undefined};
  const registerShell=vm.runInNewContext(source+'\nregisterShell',{navigator:{serviceWorker:{register:async()=>{},ready:Promise.resolve()}},window:{caches},caches});
  await registerShell();
@@ -124,4 +124,15 @@ test('returning to the gate scanner resets unlock controls without retaining dec
  assert.match(js,/pagehide[^\n]*secretKey=null;data=null;salt=null;[^\n]*view\(\)/);
  assert.match(js,/pageshow[^\n]*event.persisted&&guard\?\.current\('GATE_KEEPER'\)\)view\(\)/);
  assert.match(js,/\$\('unlock'\)\.disabled=unlocked/);
+});
+
+
+test('the primary Gatekeeper scanner action routes offline before opening the online camera',async()=>{
+ const vm=require('node:vm'),js=read('public/portal.js');
+ const start=js.indexOf("  $('studentScannerToggle').addEventListener('click', async () => {");
+ const end=js.indexOf("  $('gateScanType')?.addEventListener",start);
+ assert.ok(start>=0&&end>start);
+ let click,target,opened=0;
+ vm.runInNewContext(js.slice(start,end),{$:()=>({addEventListener:(event,fn)=>{click=fn;}}),studentQrScanner:null,user:{role:'GATE_KEEPER'},navigator:{onLine:false},window:{location:{assign:path=>{target=path;}}},startStudentScanner:async()=>{opened++;}});
+ await click();assert.equal(target,'/gate-offline.html');assert.equal(opened,0);
 });

@@ -61,3 +61,13 @@ test('network failure offers recovery rather than displaying protected dashboard
  handlers.pageshow({persisted:true});await new Promise(resolve=>setImmediate(resolve));
  assert.equal(target,'/offline-welcome.html');assert.equal(root.style.visibility,'hidden');
 });
+
+
+test('verified Gatekeeper recovers directly into scanner, never a cached private dashboard',async()=>{
+ let target=null;const handlers={};const root={dataset:{protectedRole:'STAFF'},style:{}};
+ const document={documentElement:root,addEventListener:()=>{}};
+ const window={AttendigoOfflineAccount:{current:role=>role==='GATE_KEEPER'?{role}:null},location:{replace:value=>{target=value}},addEventListener:(name,fn)=>{handlers[name]=fn}};
+ vm.runInNewContext(guardSource,{document,window,navigator:{onLine:false,serviceWorker:{controller:{}}},sessionStorage:storage(),fetch:async()=>{throw Error('offline')}});
+ handlers.pageshow({persisted:true});await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(target,'/gate-offline.html');assert.equal(root.style.visibility,'hidden');
+});
