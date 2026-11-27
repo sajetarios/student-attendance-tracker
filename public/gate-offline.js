@@ -361,7 +361,7 @@ async function resetDevice(forgot){
   const verified=await verifyRecoveryAccount();
   if(String(verified.schoolId)!==String(identity.schoolId)||String(verified.userId)!==String(identity.userId))throw Error('Gatekeeper account changed. Reset canceled.');
   await replaceDoc(original,null,()=>matchesGate(identity)&&(!original.owner||matchesGate(original.owner)));
-  window.AttendigoOfflineAccount?.clearGateResume();storedDoc=null;await lock();$('unlockPanel').hidden=true;$('preparePanel').hidden=false;$('recoveryPanel').hidden=true;
+  window.AttendigoOfflineAccount?.clearGateResume?.();storedDoc=null;await lock();$('unlockPanel').hidden=true;$('preparePanel').hidden=false;$('recoveryPanel').hidden=true;
   $('prepareResult').textContent='Offline device reset. Create a new passphrase to prepare this device again.';
  });
 }
