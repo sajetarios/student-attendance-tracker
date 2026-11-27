@@ -28,7 +28,7 @@ function implausibleSlot(slots,hours){
  });
 }
 function isoDate(value){return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value+'T12:00:00Z'));}
-function summarizeForm48({records=[],month,today,settings=null,calendar=[],officialBusiness=[],leave=null,approvedLeaves=[],pendingSickLeaves=[],scheduleAdjustments=[]}){
+function summarizeForm48({records=[],month,today,settings=null,calendar=[],officialBusiness=[],leave=null,approvedLeaves=[],pendingSickLeaves=[],pendingOtherLeaves=[],scheduleAdjustments=[]}){
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month||''))throw Error('Invalid report month');
  const configured=Boolean(settings);
  const workdays=configured&&Array.isArray(settings.workdays)?settings.workdays:[];
@@ -61,6 +61,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   const dayLeaves=(approvedLeaves||[]).filter(p=>p.from&&p.to&&date>=p.from&&date<=p.to);
   const documentedLeave=dayLeaves.length>0;
   const sickFilingPending=(pendingSickLeaves||[]).some(p=>p.from&&p.to&&date>=p.from&&date<=p.to);
+  const otherFilingPending=(pendingOtherLeaves||[]).some(p=>p.from&&p.to&&date>=p.from&&date<=p.to);
   const review=reviews[date]||'PENDING';
   const authorizationConflict=approvedOB&&documentedLeave;
   let status='NOT_SCHEDULED',lateMinutes=0,earlyMinutes=0,needsReview=false;
@@ -79,7 +80,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
    assessments.push({date,day,weekday,status:partial.status,scheduled,past,verifiedCount,verifiedSlots:SLOTS.filter(k=>isTime(slots[k])),
     lateMinutes:partial.lateMinutes,undertimeMinutes:partial.undertimeMinutes,needsReview:partial.needsReview,approvedOB:Boolean(approvedOB),
     authorizationConflict:partial.status==='OB_LEAVE_CONFLICT',leaveDay:true,approvedLeave:true,partialLeave:true,approvedLeaveDays:partial.leaveDays,
-    sickLeavePending:Boolean(sickFilingPending),calendarException:exception||null,review,temporaryMemoId:adjustment?.memoId||null,temporaryHours:adjustment?.hours||null});
+    sickLeavePending:Boolean(sickFilingPending),otherLeavePending:Boolean(otherFilingPending),calendarException:exception||null,review,temporaryMemoId:adjustment?.memoId||null,temporaryHours:adjustment?.hours||null});
    continue;
   }
   // An approved-leave day with a verified DTR punch is an unresolved conflict,
@@ -114,6 +115,12 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   else if(review==='EXCUSED'&&past){status='EXCUSED';summary.excusedDays++;}
   else if(review==='ABSENT'&&past){status='CONFIRMED_ABSENT';summary.daysAbsent++;}
   else if(past){status='MISSING_REVIEW';summary.pendingAbsentDays++;needsReview=true;}
+  // Pending non-sick filings are not approved leave, even on a confirmed absence.
+  // Surface the pending decision without overwriting a stronger existing conflict.
+  if(scheduled&&date<=today&&otherFilingPending&&!documentedLeave&&!authorizationConflict){
+   if(!needsReview||status==='MISSING_REVIEW')status='LEAVE_REVIEW';
+   needsReview=true;
+  }
   const anomalous=scheduled&&present&&!approvedOB&&!leaveDay&&!documentedLeave&&
    exception!=='SHORTENED_DAY'&&implausibleSlot(slots,hours);
   if(anomalous){status='TIME_SLOT_REVIEW';needsReview=true;summary.timeAnomalyDays++;summary.incompleteTimingDays++;}
@@ -162,7 +169,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   assessments.push({date,day,weekday,status,scheduled,past,verifiedCount,
    lateMinutes,undertimeMinutes:earlyMinutes,needsReview,timeAnomaly:Boolean(anomalous),approvedOB:Boolean(approvedOB),authorizationConflict:Boolean(authorizationConflict),
    leaveDay:Boolean(leaveDay||documentedLeave),approvedLeave:Boolean(documentedLeave),
-   sickLeavePending:Boolean(sickFilingPending),calendarException:exception||null,review,
+   sickLeavePending:Boolean(sickFilingPending),otherLeavePending:Boolean(otherFilingPending),calendarException:exception||null,review,
    temporaryMemoId:adjustment?.memoId||null,temporaryHours:adjustment?.hours||null});
  }
  if(!configured){summary.tardyMinutes=null;summary.undertimeMinutes=null;}
