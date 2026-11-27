@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v472-teacher-timetable-ui";
+const CACHE = "attendigo-v473-teacher-timetable-spacing";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -48,7 +48,7 @@ const SHELL = [
   "/attendigo-unified-navigation.js?v=1",
   "/simplified-workspace.js?v=7",
   "/simplified-workspace.css?v=1",
-  "/teacher-timetable-identities.css?v=5",
+  "/teacher-timetable-identities.css?v=6",
   "/schedule-relationships.js?v=2",
   "/fonts/InterVariable.woff2",
   "/fonts/InterVariable-Italic.woff2",
