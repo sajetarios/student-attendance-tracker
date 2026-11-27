@@ -323,9 +323,33 @@
      reject.addEventListener('click',()=>void decideObApproval(request,'REJECT'));
      actions.append(approve,reject);item.append(actions);
     }
+    const manilaDay=value=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value));
+    if(obApprovalScope==='history'&&request.status==='APPROVED'&&!request.completionStatus&&Number.isFinite(Date.parse(request.startsAt))&&manilaDay(request.startsAt)>manilaDay(Date.now())){
+     const cancel=make('button','quiet-button','Record signed cancellation');cancel.type='button';
+     cancel.addEventListener('click',()=>void cancelObApproval(request));item.append(cancel);
+    }
     host.append(item);
    }
   }catch(error){if(seq===obApprovalSequence){host.replaceChildren();label.textContent=errorText(error);}}
+ }
+ async function cancelObApproval(request){
+  if(obDecisionBusy||!window.AppDialog)return;
+  obDecisionBusy=true;
+  const label=$('principalObApprovalStatus'),controls=[...$('principalObApprovalList').querySelectorAll('button')];
+  controls.forEach(b=>b.disabled=true);
+  let saved=false;
+  try{
+   const reference=await window.AppDialog.prompt('Enter the official reference on the signed cancellation for '+request.staffName+'.','',{title:'Signed OB cancellation',label:'Official reference',maxLength:120,validate:v=>v.trim().length>=3&&v.length<=120||'Enter a valid reference (3–120 characters).',confirmText:'Continue'});
+   if(reference===null)return;
+   if(reference.trim().length<3||reference.trim().length>120)throw Error('Enter a valid official reference (3–120 characters).');
+   const reason=await window.AppDialog.prompt('Confirm you have signed the cancellation. This cancels future OB coverage, not historical attendance.','',{title:'Record signed cancellation',label:'Reason for cancellation',inputType:'textarea',maxLength:1000,validate:v=>v.trim().length>=3&&v.length<=1000||'Enter the reason (3–1000 characters).',confirmText:'I have signed — cancel OB',variant:'danger'});
+   if(reason===null)return;
+   const response=await fetch('/api/staff-attendance/official-business/'+encodeURIComponent(request.requestId)+'/cancel',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({reference,reason,signedCancellation:true})});
+   const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||'Cancellation could not be saved.');
+   saved=true;document.dispatchEvent(new Event('attendigo:requests-changed'));
+  }catch(error){label.textContent=errorText(error);}
+  finally{obDecisionBusy=false;controls.forEach(b=>b.disabled=false);}
+  if(saved){await loadObApprovals();void load();}
  }
  async function decideObApproval(request,decision){
   if(obDecisionBusy||!window.AppDialog)return;
