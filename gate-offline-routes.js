@@ -3,8 +3,20 @@ const {createHash}=require('node:crypto');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN=/^(JHS|TCH):([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
 const digest=value=>createHash('sha256').update(value.toLowerCase()).digest('hex');
-const validStamp=value=>typeof value==='string'&&Number.isFinite(Date.parse(value))&&
-  Math.abs(Date.now()-Date.parse(value))<31*86400000;
+const validStamp=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)&&
+  Number.isFinite(Date.parse(value))&&Math.abs(Date.now()-Date.parse(value))<31*86400000;
+const manilaSchoolDate=value=>{
+ const date=new Date(value);if(!Number.isFinite(date.getTime()))return null;
+ const p=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+ const part=k=>p.find(v=>v.type===k)?.value;
+ return part('year')+'-'+part('month')+'-'+part('day');
+};
+function clockWarning(captured,received){
+ const delta=Date.parse(received)-Date.parse(captured);
+ if(delta< -120000)return 'Device time is ahead of the server; verify the logbook and device clock.';
+ if(manilaSchoolDate(captured)!==manilaSchoolDate(received))return 'Received on a different Manila school date; retain original device-claimed date for review.';
+ return null;
+}
 function registerGateOfflineRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const gate=requireSchoolRoles('GATE_KEEPER'),admin=requireSchoolRoles('SCHOOL_ADMIN');
  app.get('/api/gate/offline/prepare',authenticateSchoolClient,gate,(req,res)=>{
@@ -27,12 +39,14 @@ function registerGateOfflineRoutes(app,pool,{authenticateSchoolClient,requireSch
    return {eventId:item.eventId,kind:match[1].toUpperCase()==='JHS'?'STUDENT':'STAFF',
      token:match[2],hash:digest(qr),timestamp:new Date(item.capturedAtDevice).toISOString()};
   });
-  if(validated.some(x=>!x)||new Set(validated.map(x=>x.eventId)).size!==validated.length)
+  if(validated.some(x=>!x)||new Set(validated.map(x=>x.eventId.toLowerCase())).size!==validated.length)
    return res.status(400).json({error:'One or more offline observations are invalid or repeated. No records saved.'});
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
    const results=[];
+   // Serialize retries of the same IDs, including simultaneous browser reconnects.
+   for(const id of validated.map(x=>x.eventId.toLowerCase()).sort())await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',['offline-gate:'+id]);
    for(const item of validated){
     const existing=await client.query(
      'SELECT school_id,gatekeeper_user_id,subject_kind,badge_sha256,captured_at_device FROM offline_gate_observations WHERE event_id=$1',
@@ -58,12 +72,13 @@ function registerGateOfflineRoutes(app,pool,{authenticateSchoolClient,requireSch
         '(su.teacher_photo_path IS NOT NULL OR EXISTS(SELECT 1 FROM official_profile_photos p '+
         "WHERE p.school_id=su.school_id AND p.subject_kind='STAFF' AND p.subject_id=su.user_id::text)) AS has_photo "+
         "FROM school_users su WHERE su.school_id=$1 AND su.teacher_qr_token=$2 AND "+
-        "su.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN') AND su.active=TRUE LIMIT 1",
+        "su.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL') AND su.active=TRUE LIMIT 1",
         [req.auth.schoolId,item.token]);
     const subject=found.rows[0],status=subject?'REVIEW_REQUIRED':'INVALID_BADGE';
-    const reason=!subject?'Badge was not active or recognized at synchronization.'
+    const warning=clockWarning(item.timestamp,new Date().toISOString());
+    const reason=(!subject?'Badge was not active or recognized at synchronization.'
       :!subject.has_photo?'Registered photo unavailable; identity cannot be verified.'
-      :'Captured offline. Device timestamp and photo match require authorized review.';
+      :'Captured offline. Device timestamp and photo match require authorized review.')+(warning?' '+warning:'');
     await client.query('INSERT INTO offline_gate_observations('+
       'event_id,school_id,gatekeeper_user_id,subject_kind,subject_reference,badge_sha256,'+
       'captured_at_device,status,reason) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
@@ -87,13 +102,14 @@ function registerGateOfflineRoutes(app,pool,{authenticateSchoolClient,requireSch
   try{
    const result=await pool.query('SELECT o.event_id AS "eventId",o.subject_kind AS "subjectKind",'+
        'o.subject_reference AS "subjectReference",o.captured_at_device AS "deviceTime",'+
-       'o.received_at_server AS "serverReceivedAt",o.status,o.reason,'+
+       'o.received_at_server AS "serverReceivedAt",to_char((o.captured_at_device AT TIME ZONE \'Asia/Manila\')::date,\'YYYY-MM-DD\') AS "deviceSchoolDate",o.status,o.reason,'+
+       "(SELECT count(*)::int FROM staff_attendance_events e WHERE o.subject_kind='STAFF' AND e.school_id=o.school_id AND e.staff_user_id::text=o.subject_reference AND e.school_date=(o.captured_at_device AT TIME ZONE 'Asia/Manila')::date AND e.event_kind='DTR_SLOT' AND e.verification_status='VERIFIED') AS \"sameDateVerifiedSlots\","+
        'keeper.display_name AS "gatekeeper",o.review_note AS "reviewNote" '+
      'FROM offline_gate_observations o '+
      'JOIN school_users keeper ON keeper.school_id=o.school_id AND keeper.user_id=o.gatekeeper_user_id '+
      "WHERE o.school_id=$1 ORDER BY (o.status IN ('REVIEW_REQUIRED','INVALID_BADGE')) DESC,"+
      'o.received_at_server DESC LIMIT 250',[req.auth.schoolId]);
-   return res.json({items:result.rows,notice:'Offline observations are not official gate or DTR attendance.'});
+   return res.json({items:result.rows.map(row=>({...row,clockWarning:clockWarning(row.deviceTime,row.serverReceivedAt),direction:'UNKNOWN'})),notice:'Offline observations are not official gate or DTR attendance.'});
   }catch(error){console.error('Offline gate review list:',error.code||error.message);return res.status(503).json({error:'Could not load offline gate review.'});}
  });
  app.post('/api/gate/offline/review/:id',authenticateSchoolClient,admin,async(req,res)=>{
@@ -117,4 +133,4 @@ function registerGateOfflineRoutes(app,pool,{authenticateSchoolClient,requireSch
   finally{client.release();}
  });
 }
-module.exports={registerGateOfflineRoutes};
+module.exports={registerGateOfflineRoutes,validStamp,manilaSchoolDate,clockWarning};

@@ -25,7 +25,8 @@ test('reference November scenario: holidays, leave, OB, incomplete punches and s
   approvedLeaves:[{from:'2026-11-03',to:'2026-11-04'}],
   officialBusiness:[{from:'2026-11-05',to:'2026-11-06'}]});
  assert.equal(result.summary.scheduledDays,19);
- assert.equal(result.summary.daysPresent,13); // Includes one day with partial evidence.
+ assert.equal(result.summary.daysPresent,12); // Twelve complete days, one isolated punch.
+ assert.equal(result.summary.verifiedEvidenceDays,13);
  assert.equal(result.summary.partialRecordDays,1);
  assert.equal(result.summary.daysAbsent,2);
  assert.equal(result.summary.excusedDays,2);

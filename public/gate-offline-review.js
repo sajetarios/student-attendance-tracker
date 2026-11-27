@@ -30,13 +30,18 @@ async function load(){
    card.append(text('h2',item.subjectKind+' observation · '+item.status));
    const meta=document.createElement('p');meta.className='meta';
    for(const label of ['Reference: '+(item.subjectReference||'Unknown / inactive'),
-    'Device claimed time: '+new Date(item.deviceTime).toLocaleString(),
-    'Server received: '+new Date(item.serverReceivedAt).toLocaleString(),
+    'Original Manila date: '+(item.deviceSchoolDate||'Unknown'),
+    'Device claimed time (Manila): '+new Date(item.deviceTime).toLocaleString('en-PH',{timeZone:'Asia/Manila'}),
+    'Server received (Manila): '+new Date(item.serverReceivedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila'}),
+    'Direction: unverified',
+    ...(item.subjectKind==='STAFF'?['Verified DTR slots on original date: '+Number(item.sameDateVerifiedSlots||0)]:[]),
     'Gatekeeper: '+item.gatekeeper]){
     const span=text('span',label);meta.append(span);
    }
    card.className='surface-card section-card';
    card.append(meta,text('p',item.reason),text('small',item.reviewNote||''));
+   if(item.clockWarning)card.append(text('p',item.clockWarning));
+   if(item.subjectKind==='STAFF'&&Number(item.sameDateVerifiedSlots||0)>0)card.append(text('p','Compare verified online attendance with the logbook; do not create duplicate punches. If a DTR slot is missing, use the authorized missing-scan workflow.'));
    if(['REVIEW_REQUIRED','INVALID_BADGE'].includes(item.status)){
     const label=text('label','Review explanation (required; does not generate attendance)');
     const note=document.createElement('input');note.maxLength=500;note.placeholder='Why you are closing this observation';

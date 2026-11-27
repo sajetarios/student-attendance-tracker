@@ -103,7 +103,7 @@
    (!leaveEntries.length&&s.approvedLeaveDays?esc(String(s.approvedLeaveDays)+' documented approved leave day(s).'):'')+
    obMarkup+missingMarkup+memoMarkup+'</div>'+
    '<div class="form48-summary">'+
-   '<span>Days present (verified evidence): '+esc(s.daysPresent)+'</span>'+
+   '<span>Days present (complete verified sessions): '+esc(s.daysPresent)+'</span>'+
    '<span>Days absent (confirmed): '+esc(s.daysAbsent)+esc(gapText)+'</span>'+ 
    '<span>Approved leave days: '+esc(s.approvedLeaveDays||0)+'</span>'+ 
    '<span>Tardy: '+esc(duration(s.tardyMinutes))+'</span>'+
@@ -313,17 +313,19 @@ const standalonePrintCss = [
     '<div class="form48-review-list">'+list.map(item=>{
      const selected=state.review?.dayReviews?.[item.date]||'PENDING';
      const recordReview=['INCOMPLETE_DTR','TIME_SLOT_REVIEW','LEAVE_PUNCH_CONFLICT',
-      'SICK_LEAVE_PENDING','SICK_LEAVE_REVIEW_CONFLICT','OB_LEAVE_CONFLICT','PARTIAL_LEAVE_REVIEW','UNSCHEDULED_PUNCH','APPROVED_OB_REVIEW','LEAVE_REVIEW'].includes(item.status)||item.partialLeave;
+      'SICK_LEAVE_PENDING','SICK_LEAVE_REVIEW_CONFLICT','OB_LEAVE_CONFLICT','PARTIAL_LEAVE_REVIEW','UNSCHEDULED_PUNCH','APPROVED_OB_REVIEW','LEAVE_REVIEW','SCHEDULE_REVIEW'].includes(item.status)||item.partialLeave||item.offlineReview;
      if(recordReview)return '<label>'+esc(item.date)+' · '+
-      (item.status==='TIME_SLOT_REVIEW'?'Recorded scan outside prescribed time slot':
+      (item.offlineReview?'Pending offline observation on original date; compare online evidence and authorized logbook review':
+       item.status==='SCHEDULE_REVIEW'?'Conflicting or missing authorized working hours; review school memoranda':
+       item.status==='TIME_SLOT_REVIEW'?'Recorded scan outside prescribed time slot or sequence':
        item.status==='LEAVE_PUNCH_CONFLICT'?'Approved leave overlaps verified punches':
        item.status==='OB_LEAVE_CONFLICT'?'Approved OB and leave overlap; reconcile authorizations':
        item.status==='APPROVED_OB_REVIEW'?'Approved OB: verify duty completion and uncovered timing gaps':
        item.status==='PARTIAL_LEAVE_REVIEW'?'Partial-day leave: verify prescribed session or remaining attendance':
        item.status==='UNSCHEDULED_PUNCH'?'Verified work on a non-working day: review authorization':
-       item.status==='LEAVE_REVIEW'?'Recorded leave needs official approval evidence':
-       item.status==='SICK_LEAVE_PENDING'?'Sick leave filed; official approval and HR review pending':
-       item.status==='SICK_LEAVE_REVIEW_CONFLICT'?'Sick leave filing overlaps a confirmed absence: reconcile with HR':
+       item.status==='LEAVE_REVIEW'?(item.otherLeavePending?'Leave application pending official decision':'Recorded leave needs official approval evidence'):
+       item.status==='SICK_LEAVE_PENDING'?'Sick leave filed; official approval and School Admin verification pending':
+       item.status==='SICK_LEAVE_REVIEW_CONFLICT'?'Sick leave filing overlaps a confirmed absence: reconcile with School Admin':
        'Incomplete verified DTR punches')+
       '<span class="form48-record-review">Requires evidence review. Punches remain unchanged.</span></label>';
      return '<label>'+esc(item.date)+

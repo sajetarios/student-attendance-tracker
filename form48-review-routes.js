@@ -143,7 +143,7 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
    if(!await activeEmployee(req.auth.schoolId,params.staffUserId))
     return res.status(404).json({error:'Employee not found in this school.'});
    const {from,to}=monthBounds(params.month);
-   const [rawSettings,events,calendar,ob,leave,defaults,approvedLeaves,employeeSchedule,pendingSickLeaves,memoAdjustments]=await Promise.all([
+   const [rawSettings,events,calendar,ob,leave,defaults,approvedLeaves,employeeSchedule,pendingSickLeaves,pendingOtherLeaves,memoAdjustments,offlineObservations]=await Promise.all([
     lookup(pool,req.auth.schoolId,params.staffUserId,params.month),
     pool.query("SELECT to_char(school_date,'YYYY-MM-DD') AS date,dtr_slot AS slot,"+
      " to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time"+
@@ -174,6 +174,8 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
     getEmployeeForm48Schedule(pool,req.auth.schoolId,params.staffUserId),
     pool.query("SELECT to_char(start_date,'YYYY-MM-DD') AS \"from\",to_char(end_date,'YYYY-MM-DD') AS \"to\" FROM staff_leave_requests WHERE school_id=$1 AND staff_user_id=$2 AND leave_type='SICK' AND status IN ('PENDING_HEAD','PENDING_ADMIN','PENDING_EXTERNAL') AND start_date<$4::date AND end_date>=$3::date",
      [req.auth.schoolId,params.staffUserId,from,to]),
+    pool.query("SELECT to_char(start_date,'YYYY-MM-DD') AS \"from\",to_char(end_date,'YYYY-MM-DD') AS \"to\" FROM staff_leave_requests WHERE school_id=$1 AND staff_user_id=$2 AND leave_type<>'SICK' AND status IN ('PENDING_HEAD','PENDING_ADMIN','PENDING_EXTERNAL') AND start_date<$4::date AND end_date>=$3::date",
+     [req.auth.schoolId,params.staffUserId,from,to]),
     pool.query(`SELECT memo_id AS "memoId",title,
       to_char(effective_date,'YYYY-MM-DD') AS "from",
       to_char(end_date,'YYYY-MM-DD') AS "to",
@@ -182,7 +184,11 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
      WHERE school_id=$1 AND dtr_hours IS NOT NULL
        AND audience IN ('ALL_USERS','SCHOOL_STAFF') AND category='SCHEDULE_NOTICE'
        AND effective_date<$3::date AND end_date>=$2::date
-     ORDER BY effective_date,published_at`,[req.auth.schoolId,from,to])
+     ORDER BY effective_date,published_at`,[req.auth.schoolId,from,to]),
+    pool.query(`SELECT DISTINCT to_char((captured_at_device AT TIME ZONE 'Asia/Manila')::date,'YYYY-MM-DD') AS date
+     FROM offline_gate_observations WHERE school_id=$1 AND subject_kind='STAFF' AND subject_reference=$2::text AND status='REVIEW_REQUIRED'
+      AND captured_at_device>=($3::date::timestamp AT TIME ZONE 'Asia/Manila')
+      AND captured_at_device<($4::date::timestamp AT TIME ZONE 'Asia/Manila')`,[req.auth.schoolId,params.staffUserId,from,to])
    ]);
    const settings=mergeSchoolForm48Defaults(rawSettings,defaults,employeeSchedule);
    const byDate=new Map();
@@ -196,14 +202,14 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
    const analysis=summarizeForm48({
     records:[...byDate.values()],month:params.month,today:manilaDate(),settings,
     calendar:calendar.rows,officialBusiness:ob.rows,leave:approvedLeave,
-    approvedLeaves:approvedLeaves.rows,pendingSickLeaves:pendingSickLeaves.rows,
-    scheduleAdjustments:memoAdjustments.rows
+    approvedLeaves:approvedLeaves.rows,pendingSickLeaves:pendingSickLeaves.rows,pendingOtherLeaves:pendingOtherLeaves.rows,
+    scheduleAdjustments:memoAdjustments.rows,offlineObservations:offlineObservations.rows
    });
    const approvedLeaveRemarks=buildForm48LeaveRemarks(params.month,approvedLeaves.rows,analysis.assessments);
    return res.json({...analysis,approvedLeaveRemarks,
     temporarySchedules:memoAdjustments.rows.filter(item=>!item.archivedDate||item.archivedDate>item.from),
     asOfDate:manilaDate(),reportMonth:params.month,staffUserId:params.staffUserId,
-    pendingSickLeaveCount:pendingSickLeaves.rows.length,
+    pendingSickLeaveCount:pendingSickLeaves.rows.length,pendingOtherLeaveCount:pendingOtherLeaves.rows.length,
     signatories:{verifiedBy:settings?.verifiedBy||'',approvedBy:settings?.approvedBy||'',
      verifiedPosition:settings?.verifiedPosition||'',approvedPosition:settings?.approvedPosition||''},
     regularHours:settings?.regularHours||{},saturdayHours:settings?.saturdayHours||{},
