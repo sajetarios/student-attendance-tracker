@@ -102,7 +102,7 @@ async function registerShell(){
  // The service worker installs all public offline dependencies atomically.
  // Check a complete release cache, rather than creating an obsolete cache that
  // the next service-worker activation will delete.
- const assets=['/gate-offline.html','/gate-offline.js?v=5','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
+ const assets=['/gate-offline.html','/gate-offline.js?v=6','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
  for(const cacheName of (await caches.keys()).filter(name=>name.startsWith('attendigo-v'))){
   const results=await Promise.all(assets.map(asset=>caches.match(asset,{cacheName})));
   if(results.every(response=>response?.ok))return;
@@ -113,6 +113,7 @@ async function prepare(){
  if(!await guard?.authorize('GATE_KEEPER'))throw Error('Verified Gatekeeper access required.');
  if(!online())throw Error('Online sign-in is required to prepare the scanner.');
  const pass=$('newPass').value;
+ if(pass!==$('confirmPass').value)throw Error('The two device passphrases do not match.');
  if(pass.length<12)throw Error('Choose a device passphrase with at least 12 characters.');
  if(await readDoc())throw Error('This device is already prepared. Unlock and sync its existing scans; do not overwrite them.');
  $('prepare').disabled=true;
@@ -124,7 +125,8 @@ async function prepare(){
   salt=crypto.getRandomValues(new Uint8Array(16));
   secretKey=await derive(pass,salt);
   data={scope:identity,events:[]};
-  await save();$('newPass').value='';$('pass').value='';
+  await save();$('newPass').value='';$('confirmPass').value='';$('pass').value='';
+  $('preparePanel').hidden=true;$('unlockPanel').hidden=false;$('unlockStatus').textContent='Device prepared. Keep your passphrase private.';
   $('prepareResult').textContent='Prepared and encrypted. Keep your passphrase private.';
   view();
   if(navigator.storage?.persist){
@@ -145,22 +147,42 @@ async function renew(){
  $('scanResult').textContent='Authorized for another 12 hours. Existing encrypted scans are preserved.';
  view();
 }
+async function decodePrepared(doc,pass){
+ let deviceSalt,iv,ciphertext;
+ try{
+  deviceSalt=un64(doc.salt);iv=un64(doc.iv);ciphertext=un64(doc.ciphertext);
+  if(deviceSalt.length!==16||iv.length!==12||ciphertext.length<16)throw Error('Invalid encrypted document');
+ }catch{throw Error('The saved device profile is damaged or incomplete. Keep your browser data.');}
+ let key;
+ try{key=await derive(pass,deviceSalt);}
+ catch{throw Error('Device encryption is unavailable. Reopen Attendigo in a supported secure browser. Keep your browser data.');}
+ let plain;
+ try{plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ciphertext);}
+ catch{throw Error('The original device passphrase did not unlock this profile, or the encrypted data is damaged. Check the exact characters. Do not clear your browser data.');}
+ let decoded;
+ try{decoded=JSON.parse(decoder.decode(plain));}
+ catch{throw Error('The saved device profile is invalid. Keep your browser data.');}
+ if(decoded?.scope?.role!=='GATE_KEEPER'||!decoded.scope.schoolId||!decoded.scope.userId||
+   !Array.isArray(decoded.events)||decoded.events.length>2000)throw Error('The saved device profile is invalid. Keep your browser data.');
+ return {decoded,key,deviceSalt};
+}
+function resetPassVisibility(){
+ $('pass').type='password';$('showPass').checked=false;
+}
 async function unlock(){
  if(!await guard?.authorize('GATE_KEEPER'))throw Error('Gatekeeper access is restricted. Reconnect to switch accounts.');
- const doc=await readDoc();
+ let doc;
+ try{doc=await readDoc();}catch{throw Error('Cannot read local device storage. Keep your browser data and reopen Attendigo.');}
  if(!doc)throw Error('No prepared Gatekeeper profile on this device. Prepare online first.');
- const pass=$('pass').value;if(!pass)throw Error('Enter the device passphrase.');
+ const pass=$('pass').value;if(!pass)throw Error('Enter the original device passphrase, not your sign-in password.');
  try{
-  salt=un64(doc.salt);secretKey=await derive(pass,salt);
-  const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:un64(doc.iv)},secretKey,un64(doc.ciphertext));
-  const decoded=JSON.parse(decoder.decode(plain));
-  if(decoded?.scope?.role!=='GATE_KEEPER'||!decoded.scope.schoolId||!decoded.scope.userId||
-   !Array.isArray(decoded.events)||decoded.events.length>2000)throw Error('Invalid device profile.');
-  if(!matchesGate(decoded.scope))throw Error('Prepared scanner belongs to another account.');
-  data=decoded;$('pass').value='';
+  const {decoded,key,deviceSalt}=await decodePrepared(doc,pass);
+  if(!matchesGate(decoded.scope))throw Error('This prepared scanner belongs to a different Gatekeeper account or school. Sign in online with the original account. Your encrypted records have not been changed.');
+  data=decoded;secretKey=key;salt=deviceSalt;$('pass').value='';resetPassVisibility();
+  $('unlockStatus').textContent='Scanner unlocked.';
   $('syncResult').textContent='Unlocked. Internet not required to capture; syncing requires the same signed-in Gatekeeper.';
   view();
- }catch(error){data=null;salt=null;secretKey=null;throw Error('Passphrase incorrect or encrypted device data unavailable. Do not clear your browser data.');}
+ }catch(error){data=null;salt=null;secretKey=null;resetPassVisibility();throw error;}
 }
 async function lock(){
  if(active)await stop();
@@ -273,23 +295,25 @@ function bind(id,callback){
   }finally{view();if(id==='prepare'&&!data)$('prepare').disabled=false;if(id==='unlock'&&!data)$('unlock').disabled=false;}
  });
 }
+$('showPass').addEventListener('change',()=>{$('pass').type=$('showPass').checked?'text':'password';});
 bind('prepare',prepare);bind('unlock',unlock);bind('lock',lock);bind('start',start);bind('stop',stop);bind('renew',renew);bind('sync',sync);
 bind('clearPractice',()=>discardSelected(true));bind('clearPending',()=>discardSelected(false));
 window.addEventListener('online',()=>{connectivity();void refreshAccess().then(()=>{if(data&&data.events.some(item=>item.practice!==true))return sync();}).catch(e=>{$('syncResult').textContent=e.message;});});
 window.addEventListener('offline',connectivity);
-window.addEventListener('pagehide',()=>{void stop();secretKey=null;data=null;salt=null;lastScan='';lastScanAt=0;$('queue').replaceChildren();view();}); // never keep decoded badge tokens after navigation
+window.addEventListener('pagehide',()=>{void stop();secretKey=null;data=null;salt=null;lastScan='';lastScanAt=0;$('pass').value='';$('newPass').value='';$('confirmPass').value='';resetPassVisibility();$('queue').replaceChildren();view();}); // never keep decoded badge tokens after navigation
 window.addEventListener('pageshow',event=>{if(event.persisted&&guard?.current('GATE_KEEPER'))view();}); // restore the unlock controls after a cached page returns
-function deny(){void lock();$('pass').value='';$('newPass').value='';$('queue').replaceChildren();for(const id of ['unlockPanel','preparePanel','scanPanel','syncPanel'])$(id).hidden=true;$('network').textContent='Gatekeeper access restricted. Reconnect to switch accounts.';}
+function deny(){void lock();$('pass').value='';$('newPass').value='';$('confirmPass').value='';resetPassVisibility();$('queue').replaceChildren();for(const id of ['unlockPanel','preparePanel','scanPanel','syncPanel'])$(id).hidden=true;$('network').textContent='Gatekeeper access restricted. Reconnect to switch accounts.';}
 guard?.watch(()=>{if(!guard.current('GATE_KEEPER')||(data&&!matchesGate(data.scope)))deny();});
 async function refreshAccess(){
  if(!await guard?.authorize('GATE_KEEPER')||!guard.current('GATE_KEEPER')){deny();return;}
  connectivity();
- $('unlockPanel').hidden=false;$('preparePanel').hidden=false;view();
+ $('unlockPanel').hidden=false;$('preparePanel').hidden=true;view();
  try{
   const doc=await readDoc();
   if(!guard.current('GATE_KEEPER')){deny();return;}
-  $('prepareResult').textContent=doc?'Device already prepared. Unlock using its passphrase.':'No prepared device on this browser. Connect to prepare it.';
- }catch(error){$('prepareResult').textContent='Local storage unavailable: '+error.message;}
+  $('unlockPanel').hidden=!doc;$('preparePanel').hidden=!!doc;
+  $('prepareResult').textContent=doc?'':'No prepared device on this browser. Connect to prepare it.';
+ }catch(error){$('unlockStatus').textContent='Local storage unavailable. Do not clear browser data.';}
 }
 connectivity();void refreshAccess().catch(()=>deny());
 })();
