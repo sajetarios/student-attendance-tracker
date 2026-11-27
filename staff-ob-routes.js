@@ -394,6 +394,42 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
   }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
   finally{client.release();}
  });
+ // Signed cancellation before the first Manila duty date only. Once duty may
+ // have occurred, preserve authorization until a separate evidence-based amendment.
+ app.post('/api/staff-attendance/official-business/:id/cancel',authenticateSchoolClient,requireSchoolRoles('PRINCIPAL'),async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  const reference=String(req.body?.reference||'').trim(),reason=String(req.body?.reason||'').trim();
+  if(!uuid.test(req.params.id)||req.body?.signedCancellation!==true||reference.length<3||reference.length>120||reason.length<3||reason.length>1000)
+   return res.status(400).json({error:'A signed cancellation, official reference and reason are required.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   // Share the allocation lock so a substitute cannot be assigned concurrently.
+   await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[String(req.auth.schoolId)+':OB_COVERAGE']);
+   const result=await client.query(`UPDATE staff_official_business_requests o SET status='CANCELLED'
+    WHERE o.school_id=$1 AND o.request_id=$2 AND o.staff_user_id<>$3
+     AND o.status='APPROVED' AND o.completion_status IS NULL
+     AND (o.starts_at AT TIME ZONE 'Asia/Manila')::date>(NOW() AT TIME ZONE 'Asia/Manila')::date
+     AND EXISTS(SELECT 1 FROM school_users u WHERE u.school_id=o.school_id AND u.user_id=o.staff_user_id
+      AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'))
+    RETURNING request_id,staff_user_id,starts_at,ends_at,admin_user_id,admin_decided_at,decision_note`,
+    [req.auth.schoolId,req.params.id,req.auth.userId]);
+   if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Only an approved future-date OB with no completion claim may be cancelled here. Past or same-day duty requires separate evidence review.'});}
+   await require('./attendance-authorization-conflicts').lockStaffAuthorization(client,req.auth.schoolId,result.rows[0].staff_user_id);
+   const coverage=await client.query(`SELECT coverage_id,status,substitute_user_id,assigned_by_user_id,assigned_at,class_date
+    FROM staff_ob_class_coverage WHERE school_id=$1 AND request_id=$2 FOR UPDATE`,[req.auth.schoolId,req.params.id]);
+   // Rescheduled lessons may have independent schedule changes. Do not undo those.
+   if(coverage.rows.some(row=>row.status==='RESCHEDULED')){
+    await client.query('ROLLBACK');return res.status(409).json({error:'A lesson has already been rescheduled. Reconcile its schedule before cancellation.'});
+   }
+   await client.query(`UPDATE staff_ob_class_coverage SET status='CANCELLED'
+    WHERE school_id=$1 AND request_id=$2 AND status IN ('NEEDS_COVERAGE','SUBSTITUTE_ASSIGNED')`,[req.auth.schoolId,req.params.id]);
+   await audit(client,req,'STAFF_OB_AUTHORIZED_CANCELLED',req.params.id,{reference,reason,signedCancellation:true,original:result.rows[0],coverage:coverage.rows});
+   await client.query('COMMIT');
+   return res.json({requestId:req.params.id,status:'CANCELLED',reference});
+  }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
+  finally{client.release();}
+ });
  app.post('/api/staff-attendance/official-business/:id/recommend',authenticateSchoolClient,
   requireSchoolRoles('DEPARTMENT_HEAD'),async(req,res)=>{
    res.set('Cache-Control','no-store, private');
