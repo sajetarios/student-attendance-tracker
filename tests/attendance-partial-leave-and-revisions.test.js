@@ -76,3 +76,18 @@ test('duty-side manual verification accepts only opposite session and valid loca
  assert.equal(dutySlotWithinSession({...p,slot:'AM_OUT',time:'12:05'}),true);
  assert.equal(dutySlotWithinSession({...p,slot:'AM_OUT',time:'17:20'}),false);
 });
+
+test('signed future unused leave amendment retains type/account, limits credits, and rejects stale or elapsed decisions',()=>{
+ const future={...row,leave_type:'VSC',start_date:'2026-12-01',end_date:'2026-12-05'};
+ const amendment={...input,decision:'AMEND',startDate:'2026-12-07',endDate:'2026-12-09',leaveSession:'FULL',certifiedWorkingDays:3};
+ assert.equal(planRevision(future,parseRevision(amendment),ledger,'2026-11-28').restoredDays,2);
+ assert.equal(planRevision(future,parseRevision({...amendment,certifiedWorkingDays:6}),ledger,'2026-11-28'),null);
+ assert.equal(planRevision(future,parseRevision(amendment),ledger,'2026-12-01'),null);
+ assert.equal(planRevision({...future,leave_type:'MATERNITY'},parseRevision(amendment),ledger,'2026-11-28'),null);
+ assert.equal(parseRevision({...amendment,leaveSession:'AM'}),null);
+ const half={...future,leave_session:'AM',start_date:'2026-12-01',end_date:'2026-12-01',certified_working_days:'0.500'};
+ const shifted={...amendment,startDate:'2026-12-01',endDate:'2026-12-01',leaveSession:'PM',certifiedWorkingDays:0.5};
+ const halfLedger=[{entry_kind:'USED',credit_account:'VSC',signed_days:'-0.500'}];
+ assert.equal(planRevision(half,parseRevision(shifted),halfLedger,'2026-11-28').restoredDays,0);
+ assert.equal(planRevision(half,parseRevision({...shifted,leaveSession:'AM'}),halfLedger,'2026-11-28'),null);
+});
