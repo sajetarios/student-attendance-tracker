@@ -13,7 +13,6 @@ const OFFLINE_REQUIRED = [
   "/app-dialog.css?v=2",
   "/app-dialog.js?v=1",
   "/typography.css?v=1",
-  "/offline-account-guard.js?v=1",
   "/offline-account-guard.js?v=2",
   "/offline-attendance.js?v=5",
   "/offline-sheet.js?v=8",
