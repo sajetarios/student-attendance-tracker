@@ -313,9 +313,10 @@ const standalonePrintCss = [
     '<div class="form48-review-list">'+list.map(item=>{
      const selected=state.review?.dayReviews?.[item.date]||'PENDING';
      const recordReview=['INCOMPLETE_DTR','TIME_SLOT_REVIEW','LEAVE_PUNCH_CONFLICT',
-      'SICK_LEAVE_PENDING','SICK_LEAVE_REVIEW_CONFLICT','OB_LEAVE_CONFLICT','PARTIAL_LEAVE_REVIEW','UNSCHEDULED_PUNCH','APPROVED_OB_REVIEW','LEAVE_REVIEW','SCHEDULE_REVIEW'].includes(item.status)||item.partialLeave;
+      'SICK_LEAVE_PENDING','SICK_LEAVE_REVIEW_CONFLICT','OB_LEAVE_CONFLICT','PARTIAL_LEAVE_REVIEW','UNSCHEDULED_PUNCH','APPROVED_OB_REVIEW','LEAVE_REVIEW','SCHEDULE_REVIEW'].includes(item.status)||item.partialLeave||item.offlineReview;
      if(recordReview)return '<label>'+esc(item.date)+' · '+
-      (item.status==='SCHEDULE_REVIEW'?'Conflicting or missing authorized working hours; review school memoranda':
+      (item.offlineReview?'Pending offline observation on original date; compare online evidence and authorized logbook review':
+       item.status==='SCHEDULE_REVIEW'?'Conflicting or missing authorized working hours; review school memoranda':
        item.status==='TIME_SLOT_REVIEW'?'Recorded scan outside prescribed time slot or sequence':
        item.status==='LEAVE_PUNCH_CONFLICT'?'Approved leave overlaps verified punches':
        item.status==='OB_LEAVE_CONFLICT'?'Approved OB and leave overlap; reconcile authorizations':
