@@ -45,3 +45,20 @@ test('report with configured workdays but missing prescribed hours cannot be rea
  assert.equal(summary.configured,true);assert.equal(summary.timeConfigured,false);
  assert.equal(summary.hasUnreviewed,true);assert.equal(summary.tardyMinutes,null);
 });
+
+test('pending non-sick leave is review-only and does not confer excusal or credit',()=>{
+ const {day,summary}=run({}, {pendingOtherLeaves:[{from:date,to:date}]});
+ assert.equal(day.status,'LEAVE_REVIEW');assert.equal(day.otherLeavePending,true);
+ assert.equal(day.needsReview,true);assert.equal(summary.approvedLeaveDays,0);
+ assert.equal(summary.excusedDays,0);assert.equal(summary.daysPresent,0);
+});
+test('pending non-sick leave does not erase an already confirmed absence',()=>{
+ const {day,summary}=run({}, {settings:{...settings,dayReviews:{[date]:'ABSENT'}},pendingOtherLeaves:[{from:date,to:date}]});
+ assert.equal(day.needsReview,true);assert.equal(day.review,'ABSENT');
+ assert.equal(summary.daysAbsent,1);assert.equal(summary.approvedLeaveDays,0);
+});
+test('future pending non-sick leave does not change current attendance or confer credit',()=>{
+ const {day,summary}=run({}, {today:'2026-11-24',pendingOtherLeaves:[{from:date,to:date}]});
+ assert.equal(day.status,'NOT_DUE');assert.equal(day.needsReview,false);
+ assert.equal(summary.approvedLeaveDays,0);
+});
