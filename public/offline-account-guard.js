@@ -7,7 +7,7 @@
  // Storage active-account / prepared markers remain continuity fences: if
  // both have vanished, do not resurrect a possibly logged-out account.
  const GATE_REVOKED='attendigo.offline.gateRevoked.v1',AUTH_DB='attendigo-offline-authorization-v1',AUTH_STORE='leases',AUTH_KEY='gatekeeper';
- let gateWrites=Promise.resolve(),memoryTab=null,gateDiagnostic='not-checked';
+ let gateWrites=Promise.resolve(),memoryTab=null,tabStorageUnavailable=false,gateDiagnostic='not-checked';
  const installed=()=>navigator.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches===true;
  const staffOffline=role=>role==='TEACHER'||role==='GATE_KEEPER';
  const ROLES=new Set(['STUDENT','TEACHER','GATE_KEEPER']);
@@ -16,10 +16,10 @@
  const same=(a,b)=>!!a&&!!b&&a.role===b.role&&a.schoolId===b.schoolId&&a.accountId===b.accountId;
  function sameEpoch(a,b){return same(a,b)&&typeof a.epoch==='string'&&!!a.epoch&&a.epoch===b.epoch;}
  function validStamp(a){return !!a&&ROLES.has(a.role)&&!!a.schoolId&&!!a.accountId&&typeof a.epoch==='string'&&!!a.epoch&&Number.isFinite(a.until)&&a.until>Date.now();}
- function tabRaw(){try{return sessionStorage.getItem(TAB);}catch{return memoryTab?JSON.stringify(memoryTab):null;}}
+ function tabRaw(){try{if(!tabStorageUnavailable)return sessionStorage.getItem(TAB);}catch{tabStorageUnavailable=true;}return memoryTab?JSON.stringify(memoryTab):null;}
  function tabStamp(){try{return JSON.parse(tabRaw()||'null');}catch{return null;}}
- function writeTab(stamp){memoryTab=stamp;try{sessionStorage.setItem(TAB,JSON.stringify(stamp));}catch{}}
- function removeTab(){memoryTab=null;try{sessionStorage.removeItem(TAB);sessionStorage.removeItem(STUDENT);}catch{}}
+ function writeTab(stamp){memoryTab=stamp;try{sessionStorage.setItem(TAB,JSON.stringify(stamp));tabStorageUnavailable=false;}catch{tabStorageUnavailable=true;}}
+ function removeTab(){memoryTab=null;try{sessionStorage.removeItem(TAB);sessionStorage.removeItem(STUDENT);tabStorageUnavailable=false;}catch{tabStorageUnavailable=true;}}
  function openAuthDb(){return new Promise((resolve,reject)=>{
   if(typeof indexedDB==='undefined'){reject(Error('Persistent authorization storage unavailable'));return;}
   const request=indexedDB.open(AUTH_DB,1);
@@ -48,7 +48,8 @@
   const id=identity(user);if(!id){clear();return null;}
   try{
    const old=parse(localStorage,KEY),prior=tabStamp();
-   const end=Date.parse(expiresAt||(same(prior,id)?sessionStorage.getItem('schoolAttendance.expiresAt'):'')||'');
+   let priorExpiry='';try{if(same(prior,id))priorExpiry=sessionStorage.getItem('schoolAttendance.expiresAt')||'';}catch{}
+   const end=Date.parse(expiresAt||priorExpiry||'');
    const until=Math.min(Date.now()+12*60*60*1000,Number.isFinite(end)?end:Infinity);
    if(until<=Date.now()){clear();return null;}
    const epoch=same(old,id)&&old.until>Date.now()&&old.epoch?old.epoch:crypto.randomUUID();
@@ -113,6 +114,7 @@
   }catch{gateDiagnostic='persistent-storage-unavailable';return null;}
  }
  function gateResumeDiagnostic(){return gateDiagnostic;}
+ function gateResumeMessage(){return ({'revoked':'This device’s previous offline authorization was revoked or reset. Sign in online as the original Gatekeeper and unlock to renew.', 'lease-missing':'No persistent scanner authorization was found in this browser. Reconnect and unlock your existing scanner to register it.', 'lease-expired':'The saved offline authorization has expired. Reconnect and unlock to renew it.', 'continuity-missing':'Chrome no longer has the account continuity markers. Reconnect as the original Gatekeeper; saved encrypted scans have not been cleared by Attendigo.', 'account-mismatch':'The restored browser session does not match the prepared device authorization. Reconnect as the original Gatekeeper.', 'persistent-storage-unavailable':'Persistent browser authorization storage could not be accessed. Reconnect in the same browser; do not clear browser data.', 'invalid-preparation':'The device authorization could not be confirmed. Reconnect and unlock to renew.'})[gateDiagnostic]||'Offline authorization is missing or expired. Reconnect and sign in as the original Gatekeeper in this same app or browser.';}
  function gateResumeUntil(){
   try{
    if(localStorage.getItem(GATE_REVOKED))return null;
@@ -162,5 +164,5 @@
   return current(role)||restoreInstalled(role)||await restoreGateLease(role);
  }
  function watch(fn){window.addEventListener('storage',e=>{if(e.key===KEY||e.key===null)fn();});window.addEventListener('pageshow',fn);document.addEventListener('visibilitychange',()=>{if(!document.hidden)fn();});}
- window.AttendigoOfflineAccount={record,clear,current,matches,requireRole,authorize,watch,markGatePrepared,persistGatePrepared,clearGateResume,gateResumeUntil,gateResumeDiagnostic,flushGate};
+ window.AttendigoOfflineAccount={record,clear,current,matches,requireRole,authorize,watch,markGatePrepared,persistGatePrepared,clearGateResume,gateResumeUntil,gateResumeDiagnostic,gateResumeMessage,flushGate};
 })();
