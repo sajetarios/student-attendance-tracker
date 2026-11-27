@@ -50,6 +50,7 @@ function fixture(){
    if(s==='COMMIT'){state.commits++;return rows([])}
    if(s.startsWith('ROLLBACK')){state.rollbacks++;return rows([])}
    if(s.includes('pg_advisory_xact_lock'))return rows([]);
+   if(s.includes('SELECT 1 FROM staff_official_business_requests o')&&s.includes('o.starts_at <'))return rows(state.authorizationConflict?[{}]:[]);
    if(s.includes('attendigo_notify')){state.notifications.push(args);return rows([])}
    if(s.startsWith('SELECT department_id,role,active FROM school_users')){
     const u=actors[args[1]];return rows(u?[{department_id:u.department_id,role:u.role,active:true}]:[]);

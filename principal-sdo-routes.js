@@ -1,4 +1,5 @@
 'use strict';
+const {approvedObConflicts}=require('./attendance-authorization-conflicts');
 // Principal-specific external approval coordination. Authenticated school staff only.
 // No direct write to physical gate events or Form 48 DTR slots.
 const express=require('express');
@@ -152,6 +153,8 @@ function registerPrincipalSdoRoutes(app,pool,{authenticateSchoolClient,requireSc
     [req.auth.schoolId,id,decision,req.auth.userId,
      'Documented external decision ('+reference+') by '+approver+'; School Admin recorded evidence only.']);
    if(!updated.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'OB request changed during verification.'});}
+   if(decision==='APPROVED'&&await approvedObConflicts(c,req.auth.schoolId,item.staff_user_id,id)){
+    await c.query('ROLLBACK');return res.status(409).json({error:'Documented OB overlaps approved leave or another approved OB. Reconcile before recording the decision.'});}
    await audit(c,req,'PRINCIPAL_SDO_OB_DECISION_RECORDED',id,{decision,reference,approver,position,approvedOn,sha256:createHash('sha256').update(req.body).digest('hex')});
    await c.query('COMMIT');
    return res.json({requestId:id,status:decision,notice:'Documented external decision recorded; no gate scan or DTR slot was created.'});

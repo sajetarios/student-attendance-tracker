@@ -90,3 +90,8 @@ Before the remaining cases can be implemented safely, specify fractional/partial
 
 ## Integration update
 The first interval implementation passed all 12 PR workflows at head 3089ac7059bf4d4d1fa388a359d8a5fbb3a953d7. Rebased integration preserves teacher timetable v472; new candidate v473 adds non-working-day conflict visibility and explicit OB review of complete four-punch days. Reverify exact new head; OPEN cases are still release blockers.
+
+### Authorization guard implementation (candidate)
+- Added shared employee transaction lock and half-open Manila overlap checks at staff OB approval, completion verification, external principal OB recording, leave approval, and legacy Form 48 leave transcription. Conflicts return 409 before commit; date-only leave is conservatively treated as full civil days. Pending filings remain permitted for evidence review.
+- Blocked direct revocation of Form 48 leave linked to an official request; it must use a future authorized amendment/credit reversal workflow. No automatic ledger restoration or partial-day approval is introduced by this change.
+- New route and SQL-contract tests require CI and database scenario verification. Half-day leave, credit amendment/restoration and remaining unified exception workflows are still open.

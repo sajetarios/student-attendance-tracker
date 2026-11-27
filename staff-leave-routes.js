@@ -1,6 +1,7 @@
 'use strict';
 const {randomUUID,createHash}=require('node:crypto');
 const express=require('express');
+const {lockStaffAuthorization,approvedObOverlapsLeave}=require('./attendance-authorization-conflicts');
 const {parseRequest,positiveDays,dateOk,canView,nextStatus,allowReviewer}=require('./staff-leave-policy');
 const {notifyLeaveTransition}=require('./staff-leave-inbox');
 const {SCHEMES,manilaToday,sickFilingBasis,sickAccountForScheme,requiredSickEvidence}=
@@ -307,7 +308,9 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    }
    const attachment=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 AND document_kind='APPROVAL' LIMIT 1",[req.auth.schoolId,row.request_id]);
    if(!attachment.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Attach the official signed approval (PDF/JPG/PNG) before certifying leave.'});}
-   await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',[req.auth.schoolId+':leave:'+row.staff_user_id]);
+   await lockStaffAuthorization(c,req.auth.schoolId,row.staff_user_id);
+   if(await approvedObOverlapsLeave(c,req.auth.schoolId,row.staff_user_id,row.start_date,row.end_date)){
+    await c.query('ROLLBACK');return res.status(409).json({error:'Leave overlaps approved Official Business. Reconcile the authorizations before approving leave.'});}
    const overlap=await c.query('SELECT 1 FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL AND start_date<=$4::date AND end_date>=$3::date LIMIT 1',
     [req.auth.schoolId,row.staff_user_id,row.start_date,row.end_date]);
    if(overlap.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Overlapping official leave exists. Reconcile before recording approval.'});}
