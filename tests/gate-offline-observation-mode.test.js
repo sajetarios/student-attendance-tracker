@@ -111,7 +111,7 @@ test('device encryption, scope matching and cache controls preserve online permi
 test('gate offline preparation requires one complete release cache, not an obsolete cache',async()=>{
  const vm=require('node:vm'),js=read('public/gate-offline.js');
  const source=js.slice(js.indexOf('async function registerShell(){'),js.indexOf('async function prepare(){'));
- const files=new Map([['attendigo-v359-old',new Set(['/gate-offline.html'])],['attendigo-v474-current',new Set(['/gate-offline.html','/gate-offline.js?v=6','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'])]]);
+ const files=new Map([['attendigo-v359-old',new Set(['/gate-offline.html'])],['attendigo-v474-current',new Set(['/gate-offline.html','/gate-offline.js?v=7','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'])]]);
  const caches={keys:async()=>[...files.keys()],match:async(asset,{cacheName})=>files.get(cacheName).has(asset)?{ok:true}:undefined};
  const registerShell=vm.runInNewContext(source+'\nregisterShell',{navigator:{serviceWorker:{register:async()=>{},ready:Promise.resolve()}},window:{caches},caches});
  await registerShell();
@@ -151,10 +151,24 @@ test('real encrypted Gatekeeper device unlock distinguishes a wrong passphrase, 
  const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify({scope,events:[]})));
  const doc={salt:Buffer.from(salt).toString('base64'),iv:Buffer.from(iv).toString('base64'),ciphertext:Buffer.from(cipher).toString('base64')};
  let stored=doc,match=false;
- const fn=vm.runInNewContext("let data=null,secretKey=null,salt=null; const encoder=new TextEncoder(),decoder=new TextDecoder(); const un64=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));"+derive+unlock+";unlock",{crypto,TextEncoder,TextDecoder,atob,$,guard:{authorize:async()=>true},readDoc:async()=>stored,matchesGate:()=>match,view:()=>{}});
+ const fn=vm.runInNewContext("let data=null,secretKey=null,salt=null,storedDoc=null; const encoder=new TextEncoder(),decoder=new TextDecoder(); const un64=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));"+derive+unlock+";unlock",{crypto,TextEncoder,TextDecoder,atob,$,guard:{authorize:async()=>true},readDoc:async()=>stored,matchesGate:()=>match,view:()=>{}});
  $('pass').value=pass;await assert.rejects(fn(),/different Gatekeeper account or school/);
  match=true;$('pass').value='wrong-password';await assert.rejects(fn(),/original device passphrase did not unlock/);
  stored={...doc,iv:''};$('pass').value=pass;await assert.rejects(fn(),/damaged or incomplete/);
  stored=doc;await fn();assert.equal($('unlockStatus').textContent,'Scanner unlocked.');
  assert.equal($('pass').value,'');assert.equal($('pass').type,'password');assert.equal(stored,doc);
+});
+
+
+test('device recovery requires a real online server identity and explicit reset; safe reset refuses pending observations',async()=>{
+ const vm=require('node:vm'),js=read('public/gate-offline.js');
+ const src=js.slice(js.indexOf('async function verifyRecoveryAccount('),js.indexOf('async function withRecovery(')) + js.slice(js.indexOf('async function resetDevice('),js.indexOf('function connectivity('));
+ const identity={role:'GATE_KEEPER',schoolId:'s',userId:'g'},doc={id:'gatekeeper-device',owner:identity},fields=new Map();let connected=true,confirmed='RESET',deletes=0,match=true;
+ const ctx={online:()=>connected,api:async()=>identity,matchesGate:()=>match,withRecovery:async fn=>fn(),readDoc:async()=>doc,data:{scope:identity,events:[{practice:false}]},storedDoc:doc,sameDoc:(a,b)=>a===b,window:{AppDialog:{prompt:async()=>confirmed}},replaceDoc:async(a,b,check)=>{assert.equal(a,doc);assert.equal(b,null);assert.equal(check(),true);deletes++;},lock:async()=>{},$:id=>{if(!fields.has(id))fields.set(id,{});return fields.get(id);}};
+ const reset=vm.runInNewContext(src+';resetDevice',ctx);
+ await assert.rejects(reset(false),/Synchronize all pending/);assert.equal(deletes,0);
+ connected=false;await assert.rejects(reset(true),/Connect to the internet/);connected=true;
+ ctx.data=null;match=false;await assert.rejects(reset(true),/Sign in online/);match=true;
+ confirmed=null;await reset(true);assert.equal(deletes,0);
+ confirmed='RESET';await reset(true);assert.equal(deletes,1);
 });
