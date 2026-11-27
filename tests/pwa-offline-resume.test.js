@@ -11,9 +11,9 @@ const gate={role:'GATE_KEEPER',schoolId:'school',userId:'guard'};
 const student={role:'STUDENT',schoolId:'school',studentAccountId:'student'};
 const expires=()=>new Date(Date.now()+3600000).toISOString();
 let epoch=0;
-function launch(localStorage,{standalone=true,online=false,sessionStorage=storage(),fetch=async()=>{throw Error('offline')}}={}){
+function launch(localStorage,{standalone=true,online=false,sessionStorage=storage(),fetch=async()=>{throw Error('offline')},indexedDB}={}){
  const window={matchMedia:()=>({matches:standalone})};
- vm.runInNewContext(source,{window,navigator:{standalone,onLine:online},localStorage,sessionStorage,crypto:{randomUUID:()=>String(++epoch)},fetch,AbortController,setTimeout,clearTimeout});
+ vm.runInNewContext(source,{window,navigator:{standalone,onLine:online},localStorage,sessionStorage,crypto:{randomUUID:()=>String(++epoch)},fetch,AbortController,setTimeout,clearTimeout,indexedDB});
  return {guard:window.AttendigoOfflineAccount,sessionStorage};
 }
 test('installed teacher and gatekeeper can resume only their own unexpired stamp after close',()=>{
@@ -122,4 +122,105 @@ test('prepared browser with Wi-Fi but no server resumes after failed verificatio
  first.guard.markGatePrepared({role:'GATE_KEEPER',schoolId:'school',userId:'guard',validUntil:expires()});
  const cold=launch(local,{standalone:false,online:true});
  assert.equal(await cold.guard.authorize('GATE_KEEPER').then(a=>a.accountId),'guard');
+});
+
+ 
+// An asynchronous transaction fake intentionally completes after the request
+// succeeds, exercising the production read-after-commit check.
+function persistentAuthorizationStorage(){
+ const entries=new Map();
+ let created=false;
+ const clone=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v));
+ const db={
+  objectStoreNames:{contains:()=>created},
+  createObjectStore(){created=true;},
+  close(){},
+  transaction(){
+   let aborted=false;
+   const tx={
+    abort(){aborted=true;queueMicrotask(()=>tx.onabort?.());},
+    objectStore(){
+     const request=action=>{
+      const req={};
+      queueMicrotask(()=>{
+       if(aborted)return;
+       req.result=action();
+       req.onsuccess?.();
+       queueMicrotask(()=>{if(!aborted)tx.oncomplete?.();});
+      });
+      return req;
+     };
+     return {get:key=>request(()=>clone(entries.get(key))),put:(value,key)=>request(()=>{entries.set(key,clone(value));return key;}),delete:key=>request(()=>entries.delete(key))};
+    }
+   };
+   return tx;
+  }
+ };
+ return {entries,open(){const request={result:db};queueMicrotask(()=>{if(!created)request.onupgradeneeded?.();request.onsuccess?.();});return request;}};
+}
+const activeKey='attendigo.offline.activeAccount.v1',preparedKey='attendigo.offline.preparedGate.v1',tabKey='attendigo.offline.verifiedTab.v1',revokedKey='attendigo.offline.gateRevoked.v1';
+async function prepareDurable(local,indexedDB,validUntil=expires()){
+ const first=launch(local,{standalone:false,online:true,indexedDB});
+ first.guard.record(gate,expires());
+ assert.equal(await first.guard.persistGatePrepared({role:'GATE_KEEPER',schoolId:'school',userId:'guard',validUntil}),true);
+ return first;
+}
+test('durable gate authorization repairs either missing Web Storage marker after browser close, within the original bound',async()=>{
+ for(const missing of [activeKey,preparedKey]){
+  const local=storage(),indexedDB=persistentAuthorizationStorage(),end=Date.now()+1800000;
+  await prepareDurable(local,indexedDB,new Date(end).toISOString());
+  local.removeItem(missing);
+  const cold=launch(local,{standalone:false,indexedDB});
+  const restored=await cold.guard.authorize('GATE_KEEPER');
+  assert.equal(restored.accountId,'guard');assert.equal(restored.until,end);
+  assert.equal(cold.guard.gateResumeDiagnostic(),'recovered');
+  assert.equal(cold.guard.matches('GATE_KEEPER','school','guard'),true);
+  assert.equal(cold.guard.current('TEACHER'),null);
+ }
+});
+test('durable recovery supports unavailable session storage without accepting a conflicting local account',async()=>{
+ const local=storage(),indexedDB=persistentAuthorizationStorage();
+ await prepareDurable(local,indexedDB);
+ local.removeItem(preparedKey);
+ const unavailable={getItem(){throw Error('blocked');},setItem(){throw Error('blocked');},removeItem(){throw Error('blocked');}};
+ const cold=launch(local,{standalone:false,indexedDB,sessionStorage:unavailable});
+ assert.equal((await cold.guard.authorize('GATE_KEEPER')).accountId,'guard');
+ assert.equal(cold.guard.matches('GATE_KEEPER','school','guard'),true);
+ const active=JSON.parse(local.getItem(activeKey));local.setItem(activeKey,JSON.stringify({...active,accountId:'other'}));
+ assert.equal(cold.guard.matches('GATE_KEEPER','school','guard'),false);
+ assert.equal(await cold.guard.authorize('GATE_KEEPER'),null);
+});
+test('durable authorization never overrides a conflicting tab or resurrects an account after loss of both continuity markers',async()=>{
+ const local=storage(),indexedDB=persistentAuthorizationStorage();
+ const first=await prepareDurable(local,indexedDB);
+ const tab=storage();tab.setItem(tabKey,JSON.stringify({...JSON.parse(first.sessionStorage.getItem(tabKey)),epoch:'other-epoch'}));
+ const conflicting=launch(local,{standalone:false,indexedDB,sessionStorage:tab});
+ assert.equal(await conflicting.guard.authorize('GATE_KEEPER'),null);
+ assert.equal(conflicting.guard.gateResumeDiagnostic(),'account-mismatch');
+ local.removeItem(activeKey);local.removeItem(preparedKey);
+ const cold=launch(local,{standalone:false,indexedDB});
+ assert.equal(await cold.guard.authorize('GATE_KEEPER'),null);
+ assert.equal(cold.guard.gateResumeDiagnostic(),'continuity-missing');
+});
+test('durable lease is removed by explicit logout, account switch, or server rejection',async()=>{
+ for(const action of ['logout','switch','rejection']){
+  const local=storage(),indexedDB=persistentAuthorizationStorage();
+  const first=await prepareDurable(local,indexedDB);
+  const old=local.getItem(activeKey);
+  if(action==='logout')await first.guard.clear();
+  else if(action==='switch'){first.guard.record(teacher,expires());await first.guard.flushGate();}
+  else {const rejected=launch(local,{standalone:false,indexedDB,online:true,fetch:async()=>({status:401,ok:false})});await rejected.guard.authorize('GATE_KEEPER');}
+  assert.equal(indexedDB.entries.has('gatekeeper'),false);
+  local.removeItem(revokedKey);local.setItem(activeKey,old);
+  assert.equal(await launch(local,{standalone:false,indexedDB}).guard.authorize('GATE_KEEPER'),null);
+ }
+});
+test('expired persistent lease cannot be recovered even if account continuity remains',async()=>{
+ const local=storage(),indexedDB=persistentAuthorizationStorage();
+ await prepareDurable(local,indexedDB);
+ const lease=indexedDB.entries.get('gatekeeper');indexedDB.entries.set('gatekeeper',{...lease,until:Date.now()-1000});
+ local.removeItem(preparedKey);
+ const cold=launch(local,{standalone:false,indexedDB});
+ assert.equal(await cold.guard.authorize('GATE_KEEPER'),null);
+ assert.equal(cold.guard.gateResumeDiagnostic(),'lease-expired');
 });
