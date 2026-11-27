@@ -149,7 +149,7 @@ test('Principal executive icons are locally rendered, accessible and cache-versi
  assert.ok(js.includes("principalIcon('mark',"));
  assert.ok(css.includes('.principal-action-icon'));
  assert.ok(sw.includes('principal-dashboard.css?v=18'));
- assert.ok(sw.includes('principal-dashboard.js?v=27'));
+ assert.ok(sw.includes('principal-dashboard.js?v=28'));
 });
 
 test('Principal compact header preserves one control per action and accessible mobile labels',()=>{
