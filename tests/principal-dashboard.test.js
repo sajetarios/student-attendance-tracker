@@ -149,7 +149,7 @@ test('Principal executive icons are locally rendered, accessible and cache-versi
  assert.ok(js.includes("principalIcon('mark',"));
  assert.ok(css.includes('.principal-action-icon'));
  assert.ok(sw.includes('principal-dashboard.css?v=18'));
- assert.ok(sw.includes('principal-dashboard.js?v=28'));
+ assert.ok(sw.includes('principal-dashboard.js?v=27'));
 });
 
 test('Principal compact header preserves one control per action and accessible mobile labels',()=>{
@@ -165,5 +165,5 @@ test('Principal compact header preserves one control per action and accessible m
  assert.ok(css.includes('min-height:44px;height:44px'));
  assert.ok(css.includes('.shell > .topbar #signOut > span{display:none}'));
  assert.ok(css.includes('.shell > .topbar .universal-panel{position:fixed'));
- assert.ok(sw.includes('attendigo-v481-dtr-reconciliation-candidate'));
+ assert.ok(sw.includes('attendigo-v481-dtr-reconciliation'));
 });

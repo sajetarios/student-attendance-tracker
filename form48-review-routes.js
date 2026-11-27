@@ -46,7 +46,6 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
  const admin=[authenticateSchoolClient,requireSchoolRoles('SCHOOL_ADMIN')];
  registerForm48BulkRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
  registerForm48EmployeeScheduleRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
- require('./form48-signed-archives').registerForm48SignedArchiveRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
  const validQuery=req=>{
   const month=String(req.query?.month||''),staffUserId=String(req.query?.staffUserId||'');
   return MONTH.test(month)&&Number(month.slice(0,4))>=2000&&Number(month.slice(0,4))<=2100&&UUID.test(staffUserId)?{month,staffUserId}:null;

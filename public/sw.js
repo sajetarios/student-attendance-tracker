@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v481-dtr-reconciliation-candidate";
+const CACHE = "attendigo-v481-dtr-reconciliation";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -122,7 +122,7 @@ const SHELL = [
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=5",
   "/staff-leave-ui.js?v=14",
-  "/leave-approval-inbox.js?v=5",
+  "/leave-approval-inbox.js?v=4",
   "/leave-approval-inbox.css?v=3",
   "/attendigo-presenter-nav.js?v=1",
   "/staff-leave-ui.css?v=8",
@@ -139,7 +139,7 @@ const SHELL = [
   "/teacher-teaching-overview.css?v=3",
   "/teacher-dashboard-v3.js?v=1",
   "/teacher-teaching-overview.js?v=4",
-  "/form48-report.js?v=24",
+  "/form48-report.js?v=25",
   "/missing-scan-ui.js?v=8",
   "/missing-scan-ui.css?v=4",
   "/form48-intelligence.js?v=4",
@@ -202,7 +202,7 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=17",
   "/login-routing.js",
-  "/principal-dashboard.js?v=28",
+  "/principal-dashboard.js?v=27",
   "/principal-trusted-campus.js?v=4",
   "/campus-location-ui.css?v=1",
   "/principal-dashboard.css?v=18",

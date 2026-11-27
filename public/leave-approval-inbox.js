@@ -113,28 +113,14 @@
  }
  function revisionForm(record,ctx){
   const form=make('form','leave-inbox-review-form');
-  form.append(make('p','leave-help','Record a separately signed cancellation, early-return amendment or future unused date/session change. Additional leave or a different leave type requires a new application. No new entitlement is granted here.'));
+  form.append(make('p','leave-help','Record only a separately signed cancellation or early-return amendment. An extension requires a new application. This does not authorize leave by itself.'));
   const label=make('label','leave-inbox-field');label.append(make('span',null,'Authorized change'));
   const choice=make('select');choice.name='decision';
   const options=[['CANCEL','Cancel unused approved leave'],...(record.leaveSession==='FULL'&&date(record.startDate)!==date(record.endDate)?[['SHORTEN','Shorten leave after early return']]:[])];
-  const todayParts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
-  const part=type=>todayParts.find(p=>p.type===type)?.value||'';
-  const today=part('year')+'-'+part('month')+'-'+part('day');
-  if(['SICK','VACATION','VSC'].includes(record.leaveType)&&date(record.startDate)>today)options.push(['AMEND','Change future unused dates / session']);
   options.forEach(([value,txt])=>{const o=make('option',null,txt);o.value=value;choice.append(o);});label.append(choice);form.append(label);
   const end=createInput('Revised last day of leave','date','endDate',false),days=createInput('Revised certified working days','number','certifiedWorkingDays',false,{step:'0.001',min:'0.001'});
-  const start=createInput('Replacement first day','date','startDate',false);
-  const sessionLabel=make('label','leave-inbox-field');sessionLabel.append(make('span',null,'Replacement session'));
-  const session=make('select');session.name='leaveSession';
-  for(const [v,t] of [['FULL','Full day'],['AM','AM half-day'],['PM','PM half-day']]){const o=make('option',null,t);o.value=v;session.append(o);}
-  sessionLabel.append(session);form.append(start,end,sessionLabel,days);
-  start.querySelector('input').value=date(record.startDate);end.querySelector('input').value=date(record.endDate);session.value=record.leaveSession||'FULL';
-  const sync=()=>{
-   for(const el of [end,days]){el.hidden=choice.value==='CANCEL';el.querySelector('input').required=!el.hidden;el.querySelector('input').disabled=el.hidden;}
-   for(const el of [start,sessionLabel]){el.hidden=choice.value!=='AMEND';const input=el.querySelector('input,select');input.required=!el.hidden;input.disabled=el.hidden;}
-   const amount=days.querySelector('input');amount.readOnly=choice.value==='AMEND'&&session.value!=='FULL';if(amount.readOnly){amount.value='0.5';end.querySelector('input').value=start.querySelector('input').value;}
-  };
-  session.addEventListener('change',sync);start.querySelector('input').addEventListener('change',sync);
+  form.append(end,days);
+  const sync=()=>{for(const el of [end,days]){el.hidden=choice.value!=='SHORTEN';el.querySelector('input').required=!el.hidden;el.querySelector('input').disabled=el.hidden;}};
   choice.addEventListener('change',sync);sync();
   form.append(createInput('Signed amendment reference','text','approvalReference',true,{maxLength:120}),
     createInput('Name of approving official','text','approverName',true,{maxLength:120}),
@@ -152,7 +138,7 @@
    void ctx.action('Recording signed leave revision',async()=>{
     const doc=await ctx.upload('/requests/'+record.requestId+'/documents',file,'REVISION');
     return ctx.call('/requests/'+record.requestId+'/revision','POST',{
-     decision:safeText(d.get('decision')),startDate:safeText(d.get('startDate')),leaveSession:safeText(d.get('leaveSession')),endDate:safeText(d.get('endDate')),certifiedWorkingDays:Number(d.get('certifiedWorkingDays')),
+     decision:safeText(d.get('decision')),endDate:safeText(d.get('endDate')),certifiedWorkingDays:Number(d.get('certifiedWorkingDays')),
      approvalReference:safeText(d.get('approvalReference')),approverName:safeText(d.get('approverName')),
      approverPosition:safeText(d.get('approverPosition')),approvedOn:safeText(d.get('approvedOn')),reason:safeText(d.get('reason')),
      documentId:doc.documentId,revision:record.revision,evidenceVerified:check.checked});

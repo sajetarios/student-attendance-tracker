@@ -440,56 +440,6 @@ const standalonePrintCss = [
    invalidate();
    status('School-wide signatories saved for all staff. Generate a fresh report preview.');
   });
-  // Physical signed PDF archive. It is separate from the live draft and print controls.
-  const archivePanel=document.createElement('details');
-  archivePanel.className='form48-settings-panel';
-  const archiveHeading=document.createElement('summary');archiveHeading.textContent='Signed DTR history';archivePanel.append(archiveHeading);
-  const archiveBody=document.createElement('div');archivePanel.append(archiveBody);output.after(archivePanel);
-  let archiveSeq=0;
-  const archiveRoot='/api/staff-attendance/admin/form48/signed-archives';
-  async function loadSignedHistory(){
-   const seq=++archiveSeq,key=reportKey();archiveBody.replaceChildren();
-   if(!person.value||!month.value){archiveBody.textContent='Select an employee and month.';return;}
-   const params=new URLSearchParams({staffUserId:person.value,month:month.value}),url=archiveRoot+'?'+params;
-   const note=document.createElement('p');note.textContent='Loading signed history…';archiveBody.append(note);
-   try{
-    const result=await api(url);if(seq!==archiveSeq||key!==reportKey())return;
-    const rows=result.archives||[];
-    note.textContent='Previously signed paper records are immutable. Revisions are new versions; they do not change current attendance or grant approval.';
-    const list=document.createElement('div');list.className='form48-review-list';archiveBody.append(list);
-    for(const item of rows){
-     const row=document.createElement('div'),link=document.createElement('a');
-     link.href=archiveRoot+'/'+encodeURIComponent(item.archiveId);link.textContent='Download signed version '+item.version+' (PDF)';
-     row.append(link,document.createTextNode(' · '+item.signedOn+' · '+item.approvalReference+' · '+item.reason));list.append(row);
-    }
-    if(!rows.length)list.textContent='No signed version recorded.';
-    const today=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
-    const getPart=type=>today.find(p=>p.type===type)?.value||'';
-    const todayKey=getPart('year')+'-'+getPart('month')+'-'+getPart('day');
-    if(month.value>=todayKey.slice(0,7))return;
-    const upload=document.createElement('form');upload.className='form48-review-list';
-    const field=(label,type,name,max)=>{const wrap=document.createElement('label'),input=document.createElement(type==='textarea'?'textarea':'input');if(type!=='textarea')input.type=type;input.name=name;input.required=true;if(max)input.maxLength=max;wrap.append(document.createTextNode(label),input);upload.append(wrap);return input;};
-    field('Official signed reference','text','reference',120);
-    const date=field('Date signed','date','signedOn');date.min=month.value+'-01';date.max=todayKey;
-    field(rows.length?'Reason for revised signed record':'Reason / original signed record','textarea','reason',1000);
-    const file=field('Physically signed PDF (up to 4 MB)','file','file');file.accept='application/pdf,.pdf';
-    const checked=field('I verified the employee, reporting month and physical signatures on this PDF.','checkbox','verified');
-    const submit=document.createElement('button');submit.type='submit';submit.textContent=rows.length?'Record new signed version':'Archive signed DTR';upload.append(submit);
-    const feedback=document.createElement('p');feedback.setAttribute('role','status');upload.append(feedback);
-    upload.addEventListener('submit',async e=>{
-     e.preventDefault();if(key!==reportKey()||seq!==archiveSeq||!upload.reportValidity())return;
-     const d=new FormData(upload),pdf=file.files[0];if(!pdf||pdf.size>4194304||!checked.checked){feedback.textContent='Choose a signed PDF up to 4 MB and verify the evidence.';return;}
-     submit.disabled=true;
-     try{
-      await api(url,{method:'POST',headers:{'Content-Type':'application/pdf','x-approval-reference':encodeURIComponent(String(d.get('reference')||'')),'x-revision-reason':encodeURIComponent(String(d.get('reason')||'')),'x-signed-on':String(d.get('signedOn')||''),'x-prior-version':String(rows[0]?.version||0),'x-signed-evidence-verified':'true'},body:pdf});
-      if(key===reportKey()&&seq===archiveSeq)await loadSignedHistory();
-     }catch(error){feedback.textContent=error.message;}finally{submit.disabled=false;}
-    });
-    archiveBody.append(upload);
-   }catch(error){if(seq===archiveSeq&&key===reportKey())note.textContent=error.message;}
-  }
-  archivePanel.addEventListener('toggle',()=>{if(archivePanel.open)void loadSignedHistory();});
-  for(const input of [month,person])input.addEventListener('change',()=>{++archiveSeq;archiveBody.replaceChildren();if(archivePanel.open)void loadSignedHistory();});
   month.addEventListener('change',fetchConfig);
   person.addEventListener('change',fetchConfig);
   form.addEventListener('submit',event=>{event.preventDefault();generate();});

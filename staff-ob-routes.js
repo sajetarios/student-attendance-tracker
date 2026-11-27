@@ -11,32 +11,6 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
   `INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)
    VALUES($1,$2,$3,'STAFF_OFFICIAL_BUSINESS',$4,$5::jsonb)`,
   [req.auth.schoolId,req.auth.userId,action,id,JSON.stringify(details)]);
- const flagAffectedClasses=async(client,req)=>{
-  const affected=await client.query(`
-       INSERT INTO staff_ob_class_coverage
-        (school_id,request_id,period_id,class_date,status)
-       SELECT $1,$2,p.period_id,days.class_date,'NEEDS_COVERAGE'
-       FROM staff_official_business_requests ob
-       JOIN LATERAL generate_series(
-        (ob.starts_at AT TIME ZONE 'Asia/Manila')::date,
-        ((CASE WHEN ob.completion_status='VERIFIED' THEN GREATEST(ob.ends_at,ob.completion_at) ELSE ob.ends_at END) AT TIME ZONE 'Asia/Manila')::date,
-        interval '1 day') AS days(class_date) ON TRUE
-       JOIN class_periods p ON p.school_id=ob.school_id AND p.active=TRUE
-        AND (p.effective_from IS NULL OR p.effective_from<=days.class_date)
-        AND (p.effective_to IS NULL OR p.effective_to>=days.class_date)
-       JOIN teacher_period_assignments ta ON ta.school_id=p.school_id
-        AND ta.period_id=p.period_id AND ta.teacher_user_id=ob.staff_user_id
-       JOIN class_period_days w ON w.school_id=p.school_id
-        AND w.period_id=p.period_id
-        AND w.weekday=EXTRACT(DOW FROM days.class_date)::int
-       WHERE ob.school_id=$1 AND ob.request_id=$2
-        AND (days.class_date::date+p.start_time) AT TIME ZONE 'Asia/Manila'<(CASE WHEN ob.completion_status='VERIFIED' THEN GREATEST(ob.ends_at,ob.completion_at) ELSE ob.ends_at END)
-        AND (days.class_date::date+p.end_time) AT TIME ZONE 'Asia/Manila'>ob.starts_at
-       ON CONFLICT(school_id,request_id,period_id,class_date) DO NOTHING
-       RETURNING coverage_id`,[req.auth.schoolId,req.params.id]);
-  await audit(client,req,'STAFF_OB_AFFECTED_CLASSES_FLAGGED',req.params.id,{affectedClasses:affected.rowCount});
-  return affected.rowCount;
- };
  const ownScope=req=>String(req.query?.scope||'').toLowerCase()==='mine';
  const scoped=(req)=>ownScope(req)?' AND o.staff_user_id=$2':req.auth.role==='DEPARTMENT_HEAD'?(req.query?.scope==='department'?' AND o.department_id=$2 AND o.staff_user_id<>$3':' AND o.department_id=$2'):' AND o.staff_user_id=$2';
  const params=(req)=>ownScope(req)?[req.auth.schoolId,req.auth.userId]:req.auth.role==='DEPARTMENT_HEAD'&&req.query?.scope==='department'?[req.auth.schoolId,req.auth.departmentId,req.auth.userId]:[req.auth.schoolId,req.auth.role==='DEPARTMENT_HEAD'?req.auth.departmentId:req.auth.userId];
@@ -387,46 +361,9 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Completion not awaiting Principal verification, already decided, or self-approval prohibited.'});}
    if(decision==='APPROVE'&&await approvedObConflicts(client,req.auth.schoolId,result.rows[0].staff_user_id,req.params.id)){
     await client.query('ROLLBACK');return res.status(409).json({error:'Verified completion would overlap approved leave or another OB. Reconcile the authorizations first.'});}
-   if(decision==='APPROVE')await flagAffectedClasses(client,req);
    await audit(client,req,decision==='APPROVE'?'STAFF_OB_COMPLETION_VERIFIED':'STAFF_OB_COMPLETION_PRINCIPAL_REJECTED',req.params.id,
     {note,evidenceVerified:decision==='APPROVE',completedAt:result.rows[0].completion_at});
    await client.query('COMMIT');return res.json({requestId:req.params.id,completionStatus:result.rows[0].completion_status});
-  }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
-  finally{client.release();}
- });
- // Signed cancellation before the first Manila duty date only. Once duty may
- // have occurred, preserve authorization until a separate evidence-based amendment.
- app.post('/api/staff-attendance/official-business/:id/cancel',authenticateSchoolClient,requireSchoolRoles('PRINCIPAL'),async(req,res)=>{
-  res.set('Cache-Control','no-store, private');
-  const reference=String(req.body?.reference||'').trim(),reason=String(req.body?.reason||'').trim();
-  if(!uuid.test(req.params.id)||req.body?.signedCancellation!==true||reference.length<3||reference.length>120||reason.length<3||reason.length>1000)
-   return res.status(400).json({error:'A signed cancellation, official reference and reason are required.'});
-  const client=await pool.connect();
-  try{
-   await client.query('BEGIN');
-   // Share the allocation lock so a substitute cannot be assigned concurrently.
-   await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[String(req.auth.schoolId)+':OB_COVERAGE']);
-   const result=await client.query(`UPDATE staff_official_business_requests o SET status='CANCELLED'
-    WHERE o.school_id=$1 AND o.request_id=$2 AND o.staff_user_id<>$3
-     AND o.status='APPROVED' AND o.completion_status IS NULL
-     AND (o.starts_at AT TIME ZONE 'Asia/Manila')::date>(NOW() AT TIME ZONE 'Asia/Manila')::date
-     AND EXISTS(SELECT 1 FROM school_users u WHERE u.school_id=o.school_id AND u.user_id=o.staff_user_id
-      AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'))
-    RETURNING request_id,staff_user_id,starts_at,ends_at,admin_user_id,admin_decided_at,decision_note`,
-    [req.auth.schoolId,req.params.id,req.auth.userId]);
-   if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Only an approved future-date OB with no completion claim may be cancelled here. Past or same-day duty requires separate evidence review.'});}
-   await require('./attendance-authorization-conflicts').lockStaffAuthorization(client,req.auth.schoolId,result.rows[0].staff_user_id);
-   const coverage=await client.query(`SELECT coverage_id,status,substitute_user_id,assigned_by_user_id,assigned_at,class_date
-    FROM staff_ob_class_coverage WHERE school_id=$1 AND request_id=$2 FOR UPDATE`,[req.auth.schoolId,req.params.id]);
-   // Rescheduled lessons may have independent schedule changes. Do not undo those.
-   if(coverage.rows.some(row=>row.status==='RESCHEDULED')){
-    await client.query('ROLLBACK');return res.status(409).json({error:'A lesson has already been rescheduled. Reconcile its schedule before cancellation.'});
-   }
-   await client.query(`UPDATE staff_ob_class_coverage SET status='CANCELLED'
-    WHERE school_id=$1 AND request_id=$2 AND status IN ('NEEDS_COVERAGE','SUBSTITUTE_ASSIGNED')`,[req.auth.schoolId,req.params.id]);
-   await audit(client,req,'STAFF_OB_AUTHORIZED_CANCELLED',req.params.id,{reference,reason,signedCancellation:true,original:result.rows[0],coverage:coverage.rows});
-   await client.query('COMMIT');
-   return res.json({requestId:req.params.id,status:'CANCELLED',reference});
   }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
   finally{client.release();}
  });
@@ -487,7 +424,30 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
     if(decision==='APPROVE'){
       if(await approvedObConflicts(client,req.auth.schoolId,result.rows[0].staff_user_id,req.params.id)){
        await client.query('ROLLBACK');return res.status(409).json({error:'OB overlaps approved leave or another approved OB. Reconcile the authorizations first.'});}
-      await flagAffectedClasses(client,req);
+      const affected=await client.query(`
+       INSERT INTO staff_ob_class_coverage
+        (school_id,request_id,period_id,class_date,status)
+       SELECT $1,$2,p.period_id,days.class_date,'NEEDS_COVERAGE'
+       FROM staff_official_business_requests ob
+       JOIN LATERAL generate_series(
+        (ob.starts_at AT TIME ZONE 'Asia/Manila')::date,
+        (ob.ends_at AT TIME ZONE 'Asia/Manila')::date,
+        interval '1 day') AS days(class_date) ON TRUE
+       JOIN class_periods p ON p.school_id=ob.school_id AND p.active=TRUE
+        AND (p.effective_from IS NULL OR p.effective_from<=days.class_date)
+        AND (p.effective_to IS NULL OR p.effective_to>=days.class_date)
+       JOIN teacher_period_assignments ta ON ta.school_id=p.school_id
+        AND ta.period_id=p.period_id AND ta.teacher_user_id=ob.staff_user_id
+       JOIN class_period_days w ON w.school_id=p.school_id
+        AND w.period_id=p.period_id
+        AND w.weekday=EXTRACT(DOW FROM days.class_date)::int
+       WHERE ob.school_id=$1 AND ob.request_id=$2
+        AND (days.class_date::date+p.start_time) AT TIME ZONE 'Asia/Manila'<ob.ends_at
+        AND (days.class_date::date+p.end_time) AT TIME ZONE 'Asia/Manila'>ob.starts_at
+       ON CONFLICT(school_id,request_id,period_id,class_date) DO NOTHING
+       RETURNING coverage_id`,[req.auth.schoolId,req.params.id]);
+      await audit(client,req,'STAFF_OB_AFFECTED_CLASSES_FLAGGED',req.params.id,
+        {affectedClasses:affected.rowCount});
     }
     await audit(client,req,decision==='APPROVE'?'STAFF_OB_APPROVED':'STAFF_OB_PRINCIPAL_REJECTED',req.params.id,{note,authority:'PRINCIPAL',signedAuthorization:decision==='APPROVE',...(decision==='APPROVE'?{locatorIdentity:require('./mati-locator-slip').documentIdentity(result.rows[0].documentBranding,result.rows[0])}:{})});
 

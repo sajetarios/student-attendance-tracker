@@ -381,42 +381,20 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
      WHERE school_id=$1 AND staff_user_id=$2 AND request_id=$3 AND status='VERIFIED' FOR UPDATE`,
     [req.auth.schoolId,row.staff_user_id,row.request_id]);
    const plan=planRevision(row,input,ledger.rows);
-   if(!plan){await c.query('ROLLBACK');return res.status(409).json({error:'Revision is not an eligible signed cancellation, shortening or future unused date/session amendment, or the credit ledger does not reconcile. File additional leave or a different leave type separately.'});}
-   const replacementStart=input.decision==='AMEND'?input.startDate:row.start_date;
-   const replacementSession=input.decision==='AMEND'?input.leaveSession:'FULL';
-   let session=null;
-   if(input.decision==='AMEND'){
-    if(row.leave_type==='SICK'){
-     const scheme=await c.query('SELECT leave_scheme AS "leaveScheme" FROM staff_leave_credit_schemes WHERE school_id=$1 AND staff_user_id=$2',[req.auth.schoolId,row.staff_user_id]);
-     const evidence=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 AND document_kind IN ('MEDICAL','AFFIDAVIT') LIMIT 1",[req.auth.schoolId,row.request_id]);
-     if(sickAccountForScheme(scheme.rows[0]?.leaveScheme)!==row.credit_account||!evidence.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Verify current sick-leave credit scheme and required advance-filing medical evidence before amendment.'});}
-    }
-    if(replacementSession!=='FULL'){
-     session=await certifiedSession(c,req.auth.schoolId,row.staff_user_id,replacementStart,replacementSession);
-     if(!session){await c.query('ROLLBACK');return res.status(409).json({error:'Certified working hours for the replacement half-day are required.'});}
-    }
-    if(await approvedObOverlapsLeave(c,req.auth.schoolId,row.staff_user_id,replacementStart,input.endDate,session)){
-     await c.query('ROLLBACK');return res.status(409).json({error:'Replacement leave overlaps approved OB.'});}
-    const overlap=await c.query(`SELECT 1 FROM staff_form48_approved_leaves l WHERE l.school_id=$1 AND l.staff_user_id=$2 AND l.revoked_at IS NULL AND l.leave_id<>$6
-     AND l.start_date<=$4::date AND l.end_date>=$3::date AND (l.leave_session='FULL' OR $5='FULL' OR l.leave_session=$5 OR ($7::time IS NOT NULL AND l.session_start<$8::time AND l.session_end>$7::time)) LIMIT 1`,[req.auth.schoolId,row.staff_user_id,replacementStart,input.endDate,replacementSession,row.form48_leave_id,session?.start||null,session?.end||null]);
-    if(overlap.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Replacement leave overlaps another certified leave.'});}
-    const punches=await c.query(`SELECT 1 FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND verification_status='VERIFIED' AND event_kind='DTR_SLOT'
-     AND ((school_date BETWEEN $3::date AND $4::date) OR (school_date BETWEEN $5::date AND $6::date)) LIMIT 1`,[req.auth.schoolId,row.staff_user_id,row.start_date,row.end_date,replacementStart,input.endDate]);
-    if(punches.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Verified attendance exists within the original or replacement dates. Reconcile evidence before amending.'});}
-   }
-   const before={status:row.status,startDate:row.start_date,endDate:row.end_date,leaveType:row.leave_type,leaveSession:row.leave_session||'FULL',
+   if(!plan){await c.query('ROLLBACK');return res.status(409).json({error:'Revision is not a supported cancellation or shortening, or the certified credit ledger does not reconcile. File extensions separately.'});}
+   const before={status:row.status,startDate:row.start_date,endDate:row.end_date,leaveSession:row.leave_session||'FULL',
     certifiedWorkingDays:row.certified_working_days,creditAccount:row.credit_account,approvalReference:row.external_reference,
     approverName:row.external_approver,approverPosition:row.external_approver_position,approvedOn:row.external_approved_on,form48LeaveId:row.form48_leave_id};
    await c.query('UPDATE staff_form48_approved_leaves SET revoked_at=NOW(),revoked_by_user_id=$4 WHERE school_id=$1 AND staff_user_id=$2 AND leave_id=$3 AND revoked_at IS NULL',
     [req.auth.schoolId,row.staff_user_id,row.form48_leave_id,req.auth.userId]);
    let replacementId=null;
-   if(input.decision!=='CANCEL'){
+   if(input.decision==='SHORTEN'){
     replacementId=randomUUID();
-    await c.query(`INSERT INTO staff_form48_approved_leaves(leave_id,school_id,staff_user_id,leave_type,start_date,end_date,approval_reference,recorded_by_user_id,credit_account,leave_session,session_start,session_end)
-     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,[replacementId,req.auth.schoolId,row.staff_user_id,row.leave_type,replacementStart,input.endDate,input.reference,req.auth.userId,row.credit_account,replacementSession,session?.start||null,session?.end||null]);
+    await c.query(`INSERT INTO staff_form48_approved_leaves(leave_id,school_id,staff_user_id,leave_type,start_date,end_date,approval_reference,recorded_by_user_id,credit_account,leave_session)
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'FULL')`,[replacementId,req.auth.schoolId,row.staff_user_id,row.leave_type,row.start_date,input.endDate,input.reference,req.auth.userId,row.credit_account]);
     await c.query(`UPDATE staff_leave_requests SET end_date=$3,certified_working_days=$4,form48_leave_id=$5,external_reference=$6,
-      external_approver=$7,external_approver_position=$8,external_approved_on=$9,verified_by_user_id=$10,verified_at=now(),revision=revision+1,start_date=$11,leave_session=$12
-      WHERE school_id=$1 AND request_id=$2`,[req.auth.schoolId,row.request_id,input.endDate,input.days,replacementId,input.reference,input.approverName,input.approverPosition,input.approvedOn,req.auth.userId,replacementStart,replacementSession]);
+      external_approver=$7,external_approver_position=$8,external_approved_on=$9,verified_by_user_id=$10,verified_at=now(),revision=revision+1
+      WHERE school_id=$1 AND request_id=$2`,[req.auth.schoolId,row.request_id,input.endDate,input.days,replacementId,input.reference,input.approverName,input.approverPosition,input.approvedOn,req.auth.userId]);
    }else{
     await c.query("UPDATE staff_leave_requests SET status='CANCELLED',revision=revision+1 WHERE school_id=$1 AND request_id=$2",[req.auth.schoolId,row.request_id]);
    }
@@ -425,7 +403,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
      VALUES($1,$2,$3,'ADJUSTMENT',$4,$5,'VERIFIED',$6,$6,NOW(),$7,$8)`,
      [req.auth.schoolId,row.staff_user_id,plan.account,plan.restoredDays,row.request_id,req.auth.userId,input.reference,input.reason]);
    }
-   const after={status:input.decision==='CANCEL'?'CANCELLED':'APPROVED',startDate:replacementStart,endDate:input.endDate,leaveType:row.leave_type,leaveSession:input.decision==='CANCEL'?(row.leave_session||'FULL'):replacementSession,sessionStart:session?.start||null,sessionEnd:session?.end||null,
+   const after={status:input.decision==='CANCEL'?'CANCELLED':'APPROVED',startDate:row.start_date,endDate:input.endDate,
     certifiedWorkingDays:input.days,form48LeaveId:replacementId,approvalReference:input.reference,approverName:input.approverName,
     approverPosition:input.approverPosition,approvedOn:input.approvedOn,creditAccount:plan.account};
    await c.query(`INSERT INTO staff_leave_revisions(school_id,request_id,document_id,actor_user_id,prior_revision,decision,previous_record,replacement_record,approval_reference,reason,restored_days)
