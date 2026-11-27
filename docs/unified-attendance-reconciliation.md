@@ -87,3 +87,6 @@ Before the remaining cases can be implemented safely, specify fractional/partial
 3. Test authenticated teacher, department head, principal, school admin and gatekeeper flows on desktop/mobile; include actual off-site OB verification, partial-day leave, approved corrections and DTR print layout. No change to student or parent portal policies.
 4. Run every applicable existing CI workflow and newly added scenarios on the exact final head. Preserve all existing security, role, schema and regression assertions; fix defects rather than weakening checks.
 5. Deploy only to staging until authenticated pilot tests and policy review pass. Recheck exact head/base and production migration readiness before promotion; preserve rollback and backups. Verify Render live deployment and release version.
+
+## Integration update
+The first interval implementation passed all 12 PR workflows at head 3089ac7059bf4d4d1fa388a359d8a5fbb3a953d7. Rebased integration preserves teacher timetable v472; new candidate v473 adds non-working-day conflict visibility and explicit OB review of complete four-punch days. Reverify exact new head; OPEN cases are still release blockers.

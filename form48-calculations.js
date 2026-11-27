@@ -63,8 +63,8 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   // not an ordinary day present until an authorized attendance review resolves it.
   if(present&&scheduled&&!documentedLeave){summary.daysPresent++;}
   if(scheduled&&present&&past&&verifiedCount<4){summary.partialRecordDays++;needsReview=true;}
-  if(!scheduled){status=present?'UNSCHEDULED_PUNCH':'NOT_SCHEDULED';}
-  else if(authorizationConflict){status='OB_LEAVE_CONFLICT';needsReview=true;}
+  if(authorizationConflict){status='OB_LEAVE_CONFLICT';needsReview=true;}
+  else if(!scheduled){status=present?'UNSCHEDULED_PUNCH':'NOT_SCHEDULED';}
   else if(documentedLeave&&!present&&date>today){
    // Future approved leave is scheduled, not yet a completed excused day.
    status='UPCOMING_APPROVED_LEAVE';
@@ -122,6 +122,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
    summary.incompleteTimingDays++;needsReview=true;
    // OB dates remain draft/review-only; compute only evidenced, uncovered session boundaries.
    if(approvedOB&&!leaveDay&&!documentedLeave&&exception!=='SHORTENED_DAY'){
+    status='APPROVED_OB_REVIEW';
     const timing=calculateObBoundaryGaps(slots,hours,obCoverage);
     if(timing){
      lateMinutes=timing.lateMinutes;earlyMinutes=timing.undertimeMinutes;

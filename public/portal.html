@@ -639,7 +639,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <link rel="stylesheet" href="/class-qr-monitor-embedded.css?v=1">
 <link rel="stylesheet" href="/sf1-import-mobile.css?v=1">
   <link rel="stylesheet" href="/simplified-workspace.css?v=1">
-  <link rel="stylesheet" href="/teacher-timetable-identities.css?v=4">
+  <link rel="stylesheet" href="/teacher-timetable-identities.css?v=5">
   <link rel="stylesheet" href="/attendigo-help.css?v=5">
 <link rel="stylesheet" href="/gate-offline-review.css?v=1">
 <link rel="stylesheet" href="/school-memo-banner.css?v=9">
@@ -1805,7 +1805,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div class="weekly-timetable-toolbar">
                   <div><strong>Weekly timetable</strong><span id="weeklyTimetableSummary">Loading schedules…</span></div>
                   <div class="weekly-timetable-controls">
+                    <button type="button" id="teacherTimetablePrevious" class="outline-button tt-week-step" aria-label="Previous week" hidden>‹</button>
                     <label>Week containing<input id="weeklyScheduleAsOf" type="date" aria-label="Show schedules for the week containing this date"></label>
+                    <button type="button" id="teacherTimetableNext" class="outline-button tt-week-step" aria-label="Next week" hidden>›</button>
                     <label>Grade level<select id="weeklyGradeFilter"><option value="">All grade levels</option></select></label>
                     <label>Section<select id="weeklySectionFilter"><option value="">All sections</option></select></label>
                     <div class="schedule-display-toggle" role="group" aria-label="Schedule display">
@@ -1813,6 +1815,12 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                       <button type="button" class="outline-button" data-schedule-display="list" aria-pressed="false">List view</button>
                     </div>
                   </div>
+                </div>
+                <div id="teacherTimetableStats" class="tt-week-stats" aria-label="Selected week summary" hidden>
+                  <div class="tt-stat"><span class="tt-stat-icon" aria-hidden="true">▤</span><div><strong id="ttStatSubjects">—</strong><span>Subjects</span></div></div>
+                  <div class="tt-stat"><span class="tt-stat-icon" aria-hidden="true">♧</span><div><strong id="ttStatAdvisory">—</strong><span>Advisory sections</span></div></div>
+                  <div class="tt-stat"><span class="tt-stat-icon" aria-hidden="true">▦</span><div><strong id="ttStatSessions">—</strong><span>Class sessions</span></div></div>
+                  <div class="tt-stat"><span class="tt-stat-icon" aria-hidden="true">◷</span><div><strong id="ttStatDuration">—</strong><span>Weekly teaching time</span></div></div>
                 </div>
                 <p class="field-hint">View your classes for the selected week. Swipe across days or switch to List view. Tap a class for details.</p><div id="weeklyTimetableBoard" class="weekly-timetable-board"></div>
               </section>
@@ -2544,7 +2552,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/student-name-format.js?v=2" defer></script>
   <script src="/teacher-scanner-schedule.js?v=1" defer></script>
   <script src="/gate-offline-review.js?v=1" defer></script>
-  <script src="/portal.js?v=248" defer></script>
+  <script src="/portal.js?v=249" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=10" defer></script>
   <script src="/staff-precise-location.js?v=1" defer></script>

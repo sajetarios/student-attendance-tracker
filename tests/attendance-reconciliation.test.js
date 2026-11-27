@@ -71,3 +71,17 @@ test('overlap with verified punches is not silently credited as ordinary attenda
  assert.equal(day(result).verifiedCount,4);
  assert.equal(result.summary.daysPresent,0);
 });
+
+test('overlapping approved authorizations remain visible on a non-working day',()=>{
+ const result=summarizeForm48({month:'2026-11',today:'2026-11-26',settings:{workdays:[1],regularHours:hours},
+ officialBusiness:[ob('14:00','17:00')],approvedLeaves:[{from:date,to:date}]});
+ assert.equal(day(result).status,'OB_LEAVE_CONFLICT');
+ assert.equal(day(result).needsReview,true);
+ assert.equal(result.summary.approvedLeaveDays,0);
+});
+test('OB with four verified punches remains explicitly reviewable',()=>{
+ const result=analyze([ob('14:00','15:00')],hours);
+ assert.equal(day(result).status,'APPROVED_OB_REVIEW');
+ assert.equal(day(result).needsReview,true);
+ assert.equal(day(result).verifiedCount,4);
+});

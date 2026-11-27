@@ -313,11 +313,12 @@ const standalonePrintCss = [
     '<div class="form48-review-list">'+list.map(item=>{
      const selected=state.review?.dayReviews?.[item.date]||'PENDING';
      const recordReview=['INCOMPLETE_DTR','TIME_SLOT_REVIEW','LEAVE_PUNCH_CONFLICT',
-      'SICK_LEAVE_PENDING','SICK_LEAVE_REVIEW_CONFLICT','OB_LEAVE_CONFLICT'].includes(item.status);
+      'SICK_LEAVE_PENDING','SICK_LEAVE_REVIEW_CONFLICT','OB_LEAVE_CONFLICT'].includes(item.status)||(item.status==='APPROVED_OB_REVIEW'&&item.verifiedCount>0);
      if(recordReview)return '<label>'+esc(item.date)+' · '+
       (item.status==='TIME_SLOT_REVIEW'?'Recorded scan outside prescribed time slot':
        item.status==='LEAVE_PUNCH_CONFLICT'?'Approved leave overlaps verified punches':
        item.status==='OB_LEAVE_CONFLICT'?'Approved OB and leave overlap; reconcile authorizations':
+       item.status==='APPROVED_OB_REVIEW'?'Approved OB: verify duty completion and uncovered timing gaps':
        item.status==='SICK_LEAVE_PENDING'?'Sick leave filed; official approval and HR review pending':
        item.status==='SICK_LEAVE_REVIEW_CONFLICT'?'Sick leave filing overlaps a confirmed absence: reconcile with HR':
        'Incomplete verified DTR punches')+
