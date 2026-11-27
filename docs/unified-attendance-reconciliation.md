@@ -103,3 +103,6 @@ The first interval implementation passed all 12 PR workflows at head 3089ac7059b
 - New route and SQL-contract tests require CI and database scenario verification. Half-day leave, credit amendment/restoration and remaining unified exception workflows are still open.
 
 - Explicit manual gatekeeper verification, lunch QR and eligible Department Head logbook correction now check the unexcused session against certified hours and actual Manila event date/time. Full-day/legacy leave remains blocked; automatic gate projection on partial leave stays conservative. Test exact head and verify authenticated pilot paths before production.
+
+### Release verification: staging database target
+Render's staging service uses its DATABASE_URL to reach the separate Supabase staging project. The provider-mode log alone is not the physical database identity. Read-only project-specific checks confirmed migration 101 and new tables on staging, while production remains at migration 100. Added authenticated HTTP integration using real opaque sessions, full migrated disposable PostgreSQL and original routes for approval, duty-session timing, Form 48 and signed revision replay/ledger controls. Never seed synthetic records in production. Live authenticated staging remains a separate verification step.

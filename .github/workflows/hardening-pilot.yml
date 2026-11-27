@@ -53,6 +53,8 @@ jobs:
         run: npm run db:migrate
       - name: Integrate verified gate-to-DTR and OB safeguards
         run: node tests/gate-dtr-admin-review-postgres.cjs
+      - name: Authenticated half-day leave, signed amendments and Form 48 integration
+        run: node tests/attendance-leave-revisions-postgres.cjs
       - name: Validate durable SF2 migration
         run: |
           psql -h localhost -U postgres -d school_attendance_test -Atc "SELECT COUNT(*) FROM information_schema.columns WHERE table_name='sf2_submissions' AND column_name IN ('file_bytes','file_sha256','file_size')" | grep -F '3'
