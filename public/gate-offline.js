@@ -99,16 +99,15 @@ async function registerShell(){
   throw Error('This browser does not support the required offline PWA storage.');
  await navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'});
  await navigator.serviceWorker.ready;
- // The active worker may be from a previous release until its update activates.
- // Explicitly warm the exact versioned, public offline assets in the new cache.
- const cache=await caches.open('attendigo-v359-offline-role-isolation');
- const assets=['/gate-offline.html','/gate-offline.js?v=3','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js'];
- for(const asset of assets){
-  if(!await cache.match(asset))await cache.add(asset);
+ // The service worker installs all public offline dependencies atomically.
+ // Check a complete release cache, rather than creating an obsolete cache that
+ // the next service-worker activation will delete.
+ const assets=['/gate-offline.html','/gate-offline.js?v=4','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
+ for(const cacheName of (await caches.keys()).filter(name=>name.startsWith('attendigo-v'))){
+  const results=await Promise.all(assets.map(asset=>caches.match(asset,{cacheName})));
+  if(results.every(response=>response?.ok))return;
  }
- for(const asset of assets){
-  if(!await cache.match(asset))throw Error('Offline asset could not be cached: '+asset);
- }
+ throw Error('Offline scanner files are not ready. Stay connected, reload Attendigo and try preparing again.');
 }
 async function prepare(){
  if(!await guard?.authorize('GATE_KEEPER'))throw Error('Verified Gatekeeper access required.');
@@ -278,7 +277,8 @@ bind('prepare',prepare);bind('unlock',unlock);bind('lock',lock);bind('start',sta
 bind('clearPractice',()=>discardSelected(true));bind('clearPending',()=>discardSelected(false));
 window.addEventListener('online',()=>{connectivity();if(data&&data.events.some(item=>item.practice!==true))sync().catch(e=>{$('syncResult').textContent=e.message;});});
 window.addEventListener('offline',connectivity);
-window.addEventListener('pagehide',()=>{secretKey=null;data=null;$('queue').replaceChildren();$('scanPanel').hidden=true;$('syncPanel').hidden=true;}); // never keep decoded badge tokens after navigation
+window.addEventListener('pagehide',()=>{void stop();secretKey=null;data=null;salt=null;lastScan='';lastScanAt=0;$('queue').replaceChildren();view();}); // never keep decoded badge tokens after navigation
+window.addEventListener('pageshow',event=>{if(event.persisted&&guard?.current('GATE_KEEPER'))view();}); // restore the unlock controls after a cached page returns
 function deny(){void lock();$('pass').value='';$('newPass').value='';$('queue').replaceChildren();for(const id of ['unlockPanel','preparePanel','scanPanel','syncPanel'])$(id).hidden=true;$('network').textContent='Gatekeeper access restricted. Reconnect to switch accounts.';}
 guard?.watch(()=>{if(!guard.current('GATE_KEEPER')||(data&&!matchesGate(data.scope)))deny();});
 connectivity();(async()=>{if(!await guard?.authorize('GATE_KEEPER')){deny();return null;}$('unlockPanel').hidden=false;$('preparePanel').hidden=false;return await readDoc();})().then(doc=>{

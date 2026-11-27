@@ -165,5 +165,5 @@ test('Principal compact header preserves one control per action and accessible m
  assert.ok(css.includes('min-height:44px;height:44px'));
  assert.ok(css.includes('.shell > .topbar #signOut > span{display:none}'));
  assert.ok(css.includes('.shell > .topbar .universal-panel{position:fixed'));
- assert.ok(sw.includes('attendigo-v473-teacher-timetable-spacing'));
+ assert.ok(sw.includes('attendigo-v474-gatekeeper-offline-scanner'));
 });

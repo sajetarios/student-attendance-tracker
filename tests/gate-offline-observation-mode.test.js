@@ -106,3 +106,22 @@ test('device encryption, scope matching and cache controls preserve online permi
  assert.match(portal,/gateOfflineCaptureLink/);
  assert.doesNotMatch(js,/localStorage\.setItem/);
 });
+
+
+test('gate offline preparation requires one complete release cache, not an obsolete cache',async()=>{
+ const vm=require('node:vm'),js=read('public/gate-offline.js');
+ const source=js.slice(js.indexOf('async function registerShell(){'),js.indexOf('async function prepare(){'));
+ const files=new Map([['attendigo-v359-old',new Set(['/gate-offline.html'])],['attendigo-v474-current',new Set(['/gate-offline.html','/gate-offline.js?v=4','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'])]]);
+ const caches={keys:async()=>[...files.keys()],match:async(asset,{cacheName})=>files.get(cacheName).has(asset)?{ok:true}:undefined};
+ const registerShell=vm.runInNewContext(source+'\nregisterShell',{navigator:{serviceWorker:{register:async()=>{},ready:Promise.resolve()}},window:{caches},caches});
+ await registerShell();
+ files.get('attendigo-v474-current').delete('/vendor/html5-qrcode.min.js');
+ files.get('attendigo-v359-old').add('/vendor/html5-qrcode.min.js');
+ await assert.rejects(registerShell(),/Offline scanner files are not ready/);
+});
+test('returning to the gate scanner resets unlock controls without retaining decrypted data',()=>{
+ const js=read('public/gate-offline.js');
+ assert.match(js,/pagehide[^\n]*secretKey=null;data=null;salt=null;[^\n]*view\(\)/);
+ assert.match(js,/pageshow[^\n]*event.persisted&&guard\?\.current\('GATE_KEEPER'\)\)view\(\)/);
+ assert.match(js,/\$\('unlock'\)\.disabled=unlocked/);
+});

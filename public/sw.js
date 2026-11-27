@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v473-teacher-timetable-spacing";
+const CACHE = "attendigo-v474-gatekeeper-offline-scanner";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -18,7 +18,7 @@ const OFFLINE_REQUIRED = [
   "/offline-sheet.js?v=8",
   "/attendance-sync-center.js?v=3",
   "/attendance-sync-center.css?v=4",
-  "/gate-offline.js?v=3",
+  "/gate-offline.js?v=4",
   "/student-qr-offline.js?v=4",
   "/student-qr-offline-page.js?v=5",
   "/student-qr-scanner.js?v=6",
@@ -163,7 +163,7 @@ const SHELL = [
   "/offline-attendance.js?v=5",
   "/offline-sheet.html",
   "/gate-offline.html",
-  "/gate-offline.js?v=3",
+  "/gate-offline.js?v=4",
   "/gate-offline-review.html",
   "/gate-offline-review.css?v=1",
   "/gate-offline-review.js?v=1",
