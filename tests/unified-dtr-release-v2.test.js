@@ -62,3 +62,31 @@ test('future pending non-sick leave does not change current attendance or confer
  assert.equal(day.status,'NOT_DUE');assert.equal(day.needsReview,false);
  assert.equal(summary.approvedLeaveDays,0);
 });
+
+test('conflicting active office-hours memoranda cannot silently pick a schedule',()=>{
+ const {day,summary}=run(hours,{scheduleAdjustments:[
+  {from:date,to:date,hours},{from:date,to:date,hours:{...hours,AM_IN:'09:00'}}
+ ]});
+ assert.equal(day.status,'SCHEDULE_REVIEW');assert.equal(day.needsReview,true);
+ assert.equal(summary.daysPresent,0);assert.equal(day.lateMinutes,0);
+});
+test('archived memorandum does not conflict with active adjustment',()=>{
+ const {day}=run(hours,{scheduleAdjustments:[
+  {from:date,to:date,hours,archivedDate:date},{from:date,to:date,hours}
+ ]});
+ assert.equal(day.status,'VERIFIED');assert.equal(day.needsReview,false);
+});
+test('shortened office day without certified hours cannot be ready for signature',()=>{
+ const {day,summary}=run(hours,{calendar:[{date,type:'SHORTENED_DAY'}]});
+ assert.equal(day.status,'SCHEDULE_REVIEW');assert.equal(day.needsReview,true);
+ assert.equal(summary.hasUnreviewed,true);assert.equal(summary.daysPresent,0);
+});
+test('one valid shortened-hours memorandum is applied without inventing attendance',()=>{
+ const {day,summary}=run({...hours,PM_OUT:'16:00'},{calendar:[{date,type:'SHORTENED_DAY'}],scheduleAdjustments:[{from:date,to:date,hours:{...hours,PM_OUT:'16:00'}}]});
+ assert.equal(day.status,'VERIFIED');assert.equal(day.undertimeMinutes,0);assert.equal(summary.daysPresent,1);
+});
+test('pending sick leave with verified attendance is visible without granting leave',()=>{
+ const {day,summary}=run(hours,{pendingSickLeaves:[{from:date,to:date}]});
+ assert.equal(day.status,'SICK_LEAVE_PENDING');assert.equal(day.needsReview,true);
+ assert.equal(summary.daysPresent,1);assert.equal(summary.approvedLeaveDays,0);
+});
