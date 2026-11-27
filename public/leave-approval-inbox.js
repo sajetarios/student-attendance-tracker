@@ -77,6 +77,7 @@
   form.append(createInput('Official position','text','approverPosition',true,{maxLength:120}));
   form.append(createInput('Date of official decision','date','approvedOn'));
   const working=createInput('Verified working days (for approved leave)','number','certifiedWorkingDays',true,{step:'0.001',min:'0.001'});
+  if(request.leaveSession&&request.leaveSession!=='FULL'){working.querySelector('input').value='0.5';working.querySelector('input').readOnly=true;}
   form.append(working);
   const proof=createInput('Signed official decision (PDF, JPG, PNG; 4 MB max)','file','file',false,{accept:'.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png'});
   form.append(proof);
@@ -121,7 +122,7 @@
   status.dataset.leaveStatus=record.status;
   head.append(info,status);article.append(head);
   article.append(make('p','leave-inbox-dates',
-   date(record.startDate)+' – '+date(record.endDate)+' · '+(record.leaveType?record.leaveType.replaceAll('_',' ').toLowerCase():'Leave application')));
+   date(record.startDate)+' – '+date(record.endDate)+(record.leaveSession&&record.leaveSession!=='FULL'?' · '+record.leaveSession+' half-day':'')+' · '+(record.leaveType?record.leaveType.replaceAll('_',' ').toLowerCase():'Leave application')));
   const track=make('div','leave-inbox-timeline');
   const timeline=[
    ['Application filed',Boolean(record.submittedAt)],

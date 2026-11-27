@@ -70,7 +70,7 @@
    :'');
   put('salary','_________________');
   put('workingDays',r.certifiedWorkingDays!=null?r.certifiedWorkingDays+' day(s) — officially verified':data.estimatedSchoolWorkingDays+' day(s) — calendar estimate; official verification required');
-  put('dates',date(r.startDate)+' to '+date(r.endDate));
+  put('dates',date(r.startDate)+' to '+date(r.endDate)+(r.leaveSession&&r.leaveSession!=='FULL'?' ('+r.leaveSession+' half-day)':''));
   const types=[
    ['VACATION','Vacation leave'],['MANDATORY','Mandatory/Forced leave'],['SICK','Sick leave'],
    ['MATERNITY','Maternity leave'],['PATERNITY','Paternity leave'],

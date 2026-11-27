@@ -8,7 +8,14 @@ async function lockStaffAuthorization(db,schoolId,staffId){
 const effectiveEnd=alias=>`CASE WHEN ${alias}.completion_status='VERIFIED' THEN GREATEST(${alias}.ends_at,${alias}.completion_at) ELSE ${alias}.ends_at END`;
 // Date-only leave covers the whole Manila civil day. Do not infer partial days.
 // Half-open intervals prevent collisions when an OB ends exactly at midnight.
-async function approvedObOverlapsLeave(db,schoolId,staffId,from,to){
+async function approvedObOverlapsLeave(db,schoolId,staffId,from,to,session=null){
+ if(session){
+  const r=await db.query(`SELECT 1 FROM staff_official_business_requests o
+   WHERE o.school_id=$1 AND o.staff_user_id=$2 AND o.status='APPROVED'
+   AND o.starts_at < (($4::date+$6::time) AT TIME ZONE 'Asia/Manila')
+   AND (${effectiveEnd('o')}) > (($3::date+$5::time) AT TIME ZONE 'Asia/Manila') LIMIT 1`,
+   [schoolId,staffId,from,to,session.start,session.end]);return r.rowCount>0;
+ }
  const r=await db.query(`SELECT 1 FROM staff_official_business_requests o
  WHERE o.school_id=$1 AND o.staff_user_id=$2 AND o.status='APPROVED'
  AND o.starts_at < (($4::date+1)::timestamp AT TIME ZONE 'Asia/Manila')
@@ -26,8 +33,8 @@ async function approvedObConflicts(db,schoolId,staffId,requestId){
  EXISTS (SELECT 1 FROM staff_form48_approved_leaves l
  WHERE l.school_id=current_ob.school_id AND l.staff_user_id=current_ob.staff_user_id
  AND l.revoked_at IS NULL
- AND current_ob.starts_at < ((l.end_date+1)::timestamp AT TIME ZONE 'Asia/Manila')
- AND (${effectiveEnd('current_ob')}) > (l.start_date::timestamp AT TIME ZONE 'Asia/Manila'))
+ AND current_ob.starts_at < ((CASE WHEN l.leave_session='FULL' THEN (l.end_date+1)::timestamp ELSE l.end_date+l.session_end END) AT TIME ZONE 'Asia/Manila')
+ AND (${effectiveEnd('current_ob')}) > ((CASE WHEN l.leave_session='FULL' THEN l.start_date::timestamp ELSE l.start_date+l.session_start END) AT TIME ZONE 'Asia/Manila'))
  OR EXISTS (SELECT 1 FROM staff_official_business_requests other
  WHERE other.school_id=current_ob.school_id AND other.staff_user_id=current_ob.staff_user_id
  AND other.request_id<>current_ob.request_id AND other.status='APPROVED'

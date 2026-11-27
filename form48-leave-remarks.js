@@ -31,12 +31,13 @@ function buildForm48LeaveRemarks(month,leaves=[],assessments=[]){
     ?'VSCA (Vacation Service Credits Applied)':TYPES[row.leaveType]||'Leave';
    const approvalReference=String(row.approvalReference||'').trim();
    const label=dateLabel(from,to);
-   const text=label+' — Approved '+type+
+   const session=['AM','PM'].includes(row.leaveSession)?row.leaveSession:null;
+   const text=label+' — Approved '+type+(session?' ('+session+' half-day)':'')+
     (approvalReference?' (Ref. '+approvalReference+')':'')+'.';
    const conflicts=Array.from(evidence.values()).filter(a=>
-    a.date>=from&&a.date<=to&&Number(a.verifiedCount)>0).map(a=>a.date);
+    a.date>=from&&a.date<=to&&(session?(a.verifiedSlots||[]).some(k=>k.startsWith(session+'_')):Number(a.verifiedCount)>0)).map(a=>a.date);
    return {from,to,leaveType:row.leaveType||'OTHER',creditAccount,
-    approvalReference,text,conflictDates:conflicts};
+    approvalReference,text,...(session?{leaveSession:session}:{}),conflictDates:conflicts};
   }).sort((a,b)=>a.from.localeCompare(b.from)||a.to.localeCompare(b.to));
 }
 module.exports={buildForm48LeaveRemarks};

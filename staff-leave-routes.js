@@ -1,6 +1,7 @@
 'use strict';
 const {randomUUID,createHash}=require('node:crypto');
 const express=require('express');
+const {dateKey,certifiedSession}=require('./staff-leave-sessions');
 const {lockStaffAuthorization,approvedObOverlapsLeave}=require('./attendance-authorization-conflicts');
 const {parseRequest,positiveDays,dateOk,canView,nextStatus,allowReviewer}=require('./staff-leave-policy');
 const {notifyLeaveTransition}=require('./staff-leave-inbox');
@@ -14,7 +15,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
  const audit=(c,req,action,id,details)=>c.query(
   'INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details) VALUES($1,$2,$3,$4,$5,$6::jsonb)',
   [req.auth.schoolId,req.auth.userId,action,'STAFF_LEAVE_REQUEST',id,JSON.stringify(details)]);
- const rosterSql='SELECT r.*,u.role AS requester_role,u.display_name AS staff_name, u.teacher_position AS staff_position, u.department_id AS current_department_id, s.school_name, d.department_name '+
+ const rosterSql='SELECT r.*,to_char(r.start_date,\'YYYY-MM-DD\') AS start_date,to_char(r.end_date,\'YYYY-MM-DD\') AS end_date,u.role AS requester_role,u.display_name AS staff_name, u.teacher_position AS staff_position, u.department_id AS current_department_id, s.school_name, d.department_name '+
   'FROM staff_leave_requests r JOIN school_users u ON u.school_id=r.school_id AND u.user_id=r.staff_user_id '+
   'JOIN schools s ON s.school_id=r.school_id LEFT JOIN school_departments d ON d.school_id=r.school_id AND d.department_id=r.department_id ';
  const find=async(c,req,id,lock=false)=>{
@@ -36,7 +37,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   requestId:r.request_id,staffUserId:r.staff_user_id,staffName:r.staff_name,staffRole:r.requester_role,
   staffPosition:r.staff_position||'',departmentName:r.department_name||'',schoolName:r.school_name,
   leaveType:r.leave_type,creditAccount:r.credit_account,startDate:r.start_date,
-  endDate:r.end_date,reason:r.reason,details:r.details,commutation:r.commutation,
+  endDate:r.end_date,leaveSession:r.leave_session||'FULL',reason:r.reason,details:r.details,commutation:r.commutation,
   status:r.status,filingBasis:r.filing_basis||'STANDARD',submittedAt:r.submitted_at,headNote:r.head_note||'',
   adminNote:r.admin_note||'',certifiedWorkingDays:r.certified_working_days,
   externalReference:r.external_reference||'',externalApprover:r.external_approver||'',
@@ -110,7 +111,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     "WHERE (COALESCE(op.is_operating_day,FALSE)=TRUE OR ce.exception_type IN ('OPEN','SPECIAL_CLASS','SHORTENED_DAY')) " +
     "AND ce.exception_type IS DISTINCT FROM 'CLOSED'",
     [req.auth.schoolId,row.start_date,row.end_date]);
-   res.json({formVersion:'CS Form No. 6 Revised 2020',request:printable(row),estimatedSchoolWorkingDays:days.rows[0].estimated,
+   res.json({formVersion:'CS Form No. 6 Revised 2020',request:printable(row),estimatedSchoolWorkingDays:row.leave_session&&row.leave_session!=='FULL'?0.5:days.rows[0].estimated,
     credits:credits.rows,applicantSignature:null,certifyingOfficerSignature:null,
     recommendingOfficerSignature:null,approvingOfficerSignature:null,
     officialMonthlySalary:null});
@@ -159,10 +160,10 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    const staff=await c.query('SELECT department_id,role,active FROM school_users WHERE school_id=$1 AND user_id=$2 FOR UPDATE',
     [req.auth.schoolId,req.auth.userId]);
    if(!staff.rowCount||!staff.rows[0].active){await c.query('ROLLBACK');return res.status(403).json({error:'An active school employee account is required.'});}
-   const overlaps=await c.query('SELECT request_id FROM staff_leave_requests WHERE school_id=$1 AND staff_user_id=$2 AND status NOT IN (\'REJECTED\',\'CANCELLED\',\'DECLINED_HEAD\') AND start_date<=$4::date AND end_date>=$3::date LIMIT 1',
-    [req.auth.schoolId,req.auth.userId,input.startDate,input.endDate]);
-   const old=await c.query('SELECT leave_id FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL AND start_date<=$4::date AND end_date>=$3::date LIMIT 1',
-    [req.auth.schoolId,req.auth.userId,input.startDate,input.endDate]);
+   const overlaps=await c.query('SELECT request_id FROM staff_leave_requests WHERE school_id=$1 AND staff_user_id=$2 AND status NOT IN (\'REJECTED\',\'CANCELLED\',\'DECLINED_HEAD\') AND start_date<=$4::date AND end_date>=$3::date AND (leave_session=\'FULL\' OR $5=\'FULL\' OR leave_session=$5) LIMIT 1',
+    [req.auth.schoolId,req.auth.userId,input.startDate,input.endDate,input.leaveSession]);
+   const old=await c.query('SELECT leave_id FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL AND start_date<=$4::date AND end_date>=$3::date AND (leave_session=\'FULL\' OR $5=\'FULL\' OR leave_session=$5) LIMIT 1',
+    [req.auth.schoolId,req.auth.userId,input.startDate,input.endDate,input.leaveSession]);
    if(overlaps.rowCount||old.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'An overlapping leave request or recorded approval already exists.'});}
    const heads=await c.query('SELECT 1 FROM school_users WHERE school_id=$1 AND department_id=$2 AND role=\'DEPARTMENT_HEAD\' AND user_id<>$3 AND active=TRUE LIMIT 1',
     [req.auth.schoolId,staff.rows[0].department_id,req.auth.userId]);
@@ -189,9 +190,9 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    const creditAccount=input.leaveType==='SICK'
     ?(sickAccountForScheme(verifiedScheme)||'NONE'):input.creditAccount;
    const status=nextStatus(req.auth.role,heads.rowCount>0),id=randomUUID();
-   await c.query('INSERT INTO staff_leave_requests(request_id,school_id,staff_user_id,department_id,leave_type,credit_account,start_date,end_date,reason,details,commutation,status,filing_basis) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',
+   await c.query('INSERT INTO staff_leave_requests(request_id,school_id,staff_user_id,department_id,leave_type,credit_account,start_date,end_date,reason,details,commutation,status,filing_basis,leave_session) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
     [id,req.auth.schoolId,req.auth.userId,staff.rows[0].department_id,input.leaveType,creditAccount,
-     input.startDate,input.endDate,input.reason,input.details,input.commutation,status,filingBasis]);
+     input.startDate,input.endDate,input.reason,input.details,input.commutation,status,filingBasis,input.leaveSession]);
    await audit(c,req,'LEAVE_SUBMITTED',id,{status,dates:[input.startDate,input.endDate],creditAccount,filingBasis});
    await notifyLeaveTransition(c,{schoolId:req.auth.schoolId,requestId:id,staffUserId:req.auth.userId,
     departmentId:staff.rows[0].department_id,requesterRole:staff.rows[0].role,status});
@@ -309,10 +310,17 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    const attachment=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 AND document_kind='APPROVAL' LIMIT 1",[req.auth.schoolId,row.request_id]);
    if(!attachment.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Attach the official signed approval (PDF/JPG/PNG) before certifying leave.'});}
    await lockStaffAuthorization(c,req.auth.schoolId,row.staff_user_id);
-   if(await approvedObOverlapsLeave(c,req.auth.schoolId,row.staff_user_id,row.start_date,row.end_date)){
+   const leaveSession=row.leave_session||'FULL';
+   let session=null;
+   if(leaveSession!=='FULL'){
+    if(days!==0.5){await c.query('ROLLBACK');return res.status(409).json({error:'The signed half-day decision must explicitly certify 0.5 day.'});}
+    session=await certifiedSession(c,req.auth.schoolId,row.staff_user_id,dateKey(row.start_date),leaveSession);
+    if(!session){await c.query('ROLLBACK');return res.status(409).json({error:'Confirm the prescribed working hours and any temporary memorandum for the selected half-day before approval.'});}
+   }
+   if(await approvedObOverlapsLeave(c,req.auth.schoolId,row.staff_user_id,row.start_date,row.end_date,session)){
     await c.query('ROLLBACK');return res.status(409).json({error:'Leave overlaps approved Official Business. Reconcile the authorizations before approving leave.'});}
-   const overlap=await c.query('SELECT 1 FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL AND start_date<=$4::date AND end_date>=$3::date LIMIT 1',
-    [req.auth.schoolId,row.staff_user_id,row.start_date,row.end_date]);
+   const overlap=await c.query('SELECT 1 FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL AND start_date<=$4::date AND end_date>=$3::date AND (leave_session=\'FULL\' OR $5=\'FULL\' OR leave_session=$5) LIMIT 1',
+    [req.auth.schoolId,row.staff_user_id,row.start_date,row.end_date,leaveSession]);
    if(overlap.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Overlapping official leave exists. Reconcile before recording approval.'});}
    if(chargeAccount!=='NONE'){
     const balance=await c.query('SELECT COALESCE(SUM(signed_days),0)::numeric AS days FROM staff_leave_credit_entries WHERE school_id=$1 AND staff_user_id=$2 AND credit_account=$3 AND status=\'VERIFIED\'',
@@ -322,8 +330,8 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
      [req.auth.schoolId,row.staff_user_id,chargeAccount,-days,row.request_id,req.auth.userId,reference]);
    }
    const form48id=randomUUID();
-   await c.query('INSERT INTO staff_form48_approved_leaves(leave_id,school_id,staff_user_id,leave_type,start_date,end_date,approval_reference,recorded_by_user_id,credit_account) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
-    [form48id,req.auth.schoolId,row.staff_user_id,row.leave_type,row.start_date,row.end_date,reference,req.auth.userId,chargeAccount]);
+   await c.query('INSERT INTO staff_form48_approved_leaves(leave_id,school_id,staff_user_id,leave_type,start_date,end_date,approval_reference,recorded_by_user_id,credit_account,leave_session,session_start,session_end) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
+    [form48id,req.auth.schoolId,row.staff_user_id,row.leave_type,row.start_date,row.end_date,reference,req.auth.userId,chargeAccount,leaveSession,session?.start||null,session?.end||null]);
    await c.query('UPDATE staff_leave_requests SET status=\'APPROVED\',certified_working_days=$3,external_reference=$4,external_approver=$5,external_approver_position=$6,external_approved_on=$7,verified_by_user_id=$8,verified_at=now(),form48_leave_id=$9,credit_account=$10,revision=revision+1 WHERE school_id=$1 AND request_id=$2',
     [req.auth.schoolId,row.request_id,days,reference,approver,position,approvedOn,req.auth.userId,form48id,chargeAccount]);
    await audit(c,req,'LEAVE_EXTERNAL_APPROVED',row.request_id,{approvalReference:reference,chargedDays:days,creditAccount:chargeAccount,filingBasis:row.filing_basis,form48LeaveId:form48id});
