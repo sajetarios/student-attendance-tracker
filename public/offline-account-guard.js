@@ -18,21 +18,25 @@
  function validStamp(a){return !!a&&ROLES.has(a.role)&&!!a.schoolId&&!!a.accountId&&typeof a.epoch==='string'&&!!a.epoch&&Number.isFinite(a.until)&&a.until>Date.now();}
  function tabRaw(){try{if(!tabStorageUnavailable)return sessionStorage.getItem(TAB);}catch{tabStorageUnavailable=true;}return memoryTab?JSON.stringify(memoryTab):null;}
  function tabStamp(){try{return JSON.parse(tabRaw()||'null');}catch{return null;}}
- function writeTab(stamp){memoryTab=stamp;try{sessionStorage.setItem(TAB,JSON.stringify(stamp));tabStorageUnavailable=false;}catch{tabStorageUnavailable=true;}}
+ function writeTab(stamp){memoryTab=stamp?.role==='GATE_KEEPER'?stamp:null;try{sessionStorage.setItem(TAB,JSON.stringify(stamp));tabStorageUnavailable=false;}catch{tabStorageUnavailable=true;}}
  function removeTab(){memoryTab=null;try{sessionStorage.removeItem(TAB);sessionStorage.removeItem(STUDENT);tabStorageUnavailable=false;}catch{tabStorageUnavailable=true;}}
  function openAuthDb(){return new Promise((resolve,reject)=>{
   if(typeof indexedDB==='undefined'){reject(Error('Persistent authorization storage unavailable'));return;}
   const request=indexedDB.open(AUTH_DB,1);
   request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains(AUTH_STORE))request.result.createObjectStore(AUTH_STORE);};
-  request.onsuccess=()=>resolve(request.result);
-  request.onerror=()=>reject(request.error||Error('Persistent authorization storage unavailable'));
-  request.onblocked=()=>reject(Error('Persistent authorization storage blocked'));
+  let settled=false;
+  const timer=setTimeout(()=>finish(Error('Persistent authorization storage timed out')),2500);
+  function finish(error){if(settled)return;settled=true;clearTimeout(timer);if(error)reject(error);else resolve(request.result);}
+  request.onsuccess=()=>{if(settled){request.result.close();return;}finish();};
+  request.onerror=()=>finish(request.error||Error('Persistent authorization storage unavailable'));
+  request.onblocked=()=>finish(Error('Persistent authorization storage blocked'));
  });}
  async function leaseTx(mode,action){
   const db=await openAuthDb();
   try{return await new Promise((resolve,reject)=>{
    const tx=db.transaction(AUTH_STORE,mode),store=tx.objectStore(AUTH_STORE);let value,error;
-   tx.oncomplete=()=>resolve(value);tx.onabort=()=>reject(error||tx.error||Error('Authorization transaction aborted'));tx.onerror=()=>reject(error||tx.error);
+   const timer=setTimeout(()=>{try{tx.abort();}catch{}reject(Error('Authorization transaction timed out'));},2500);
+   tx.oncomplete=()=>{clearTimeout(timer);resolve(value);};tx.onabort=()=>{clearTimeout(timer);reject(error||tx.error||Error('Authorization transaction aborted'));};tx.onerror=()=>{clearTimeout(timer);reject(error||tx.error);};
    try{const req=action(store);req.onsuccess=()=>{value=req.result;};req.onerror=()=>{error=req.error;};}catch(e){error=e;tx.abort();}
   });}finally{db.close();}
  }
