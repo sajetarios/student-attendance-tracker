@@ -608,6 +608,10 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       $('gateOfflineCaptureLink').hidden = !gateKeeper;
       $('gateOfflineCaptureLink').style.display = gateKeeper ? 'inline-flex' : 'none';
     }
+    if ($('gateOfflineReadiness')) {
+      const readiness=$('gateOfflineReadiness');readiness.hidden=!gateKeeper;
+      if(gateKeeper){const until=window.AttendigoOfflineAccount?.gateResumeUntil?.();readiness.textContent=until?'Offline account authorization saved until '+new Date(until).toLocaleString()+'. Open the offline scanner to verify device readiness.':'Online scanner only. Before disconnecting, open Prepare / unlock offline scanner and confirm offline reopen readiness. Keep this same browser or installed app.';}
+    }
     if ($('gateScanTypeWrap')) $('gateScanTypeWrap').hidden = !gateKeeper;
     if (gateKeeper) {
       if ($('gateScannerHeading')) $('gateScannerHeading').textContent = 'Learner and teacher gate attendance';
