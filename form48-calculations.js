@@ -13,6 +13,9 @@ function validHours(value){
 }
 function clockMinutes(value){const n=minuteOf(value);return n===null?null:n;}
 function implausibleSlot(slots,hours){
+ // Chronology is independent of configured hours. Compare every known slot in order.
+ const observed=SLOTS.map(s=>minuteOf(slots[s])).filter(n=>n!==null);
+ if(observed.some((n,i)=>i>0&&n<observed[i-1]))return true;
  if(!validHours(hours))return false;
  const h=Object.fromEntries(SLOTS.map(s=>[s,minuteOf(hours[s])]));
  return SLOTS.some(slot=>{
@@ -37,6 +40,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   (!workdays.some(day=>day!==6)||validHours(settings.regularHours))&&
   (!workdays.includes(6)||validHours(settings.saturdayHours));
  const summary={daysPresent:0,daysAbsent:0,excusedDays:0,pendingAbsentDays:0,
+  verifiedPartialDutyDays:0,verifiedEvidenceDays:0,timeConfigured,
   partialRecordDays:0,scheduledDays:0,approvedLeaveDays:0,timeAnomalyDays:0,tardyMinutes:timeConfigured?0:null,
   undertimeMinutes:timeConfigured?0:null,tardyDays:0,undertimeDays:0,
   incompleteTimingDays:0,unresolvedDays:0,configured,hasUnreviewed:false};
@@ -79,7 +83,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   }
   // An approved-leave day with a verified DTR punch is an unresolved conflict,
   // not an ordinary day present until an authorized attendance review resolves it.
-  if(present&&scheduled&&!documentedLeave){summary.daysPresent++;}
+  if(present&&scheduled)summary.verifiedEvidenceDays++;
   if(scheduled&&present&&past&&verifiedCount<4){summary.partialRecordDays++;needsReview=true;}
   if(authorizationConflict){status='OB_LEAVE_CONFLICT';needsReview=true;}
   else if(!scheduled){status=present?'UNSCHEDULED_PUNCH':'NOT_SCHEDULED';if(present)needsReview=true;}
@@ -147,6 +151,13 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
     }
    }
   }
+  // Count only complete, plausible sessions on ordinary duty days. An incomplete
+  // or conflicting day never becomes a full day of attendance from one punch.
+  if(scheduled&&present&&!anomalous&&!approvedOB&&!leaveDay&&!documentedLeave&&validHours(hours)&&exception!=='SHORTENED_DAY'){
+   const completeSessions=['AM','PM'].filter(s=>isTime(slots[s+'_IN'])&&isTime(slots[s+'_OUT'])).length;
+   summary.daysPresent+=completeSessions/2;
+   if(completeSessions===1)summary.verifiedPartialDutyDays+=0.5;
+  }
   if(needsReview){summary.unresolvedDays++;summary.hasUnreviewed=true;}
   assessments.push({date,day,weekday,status,scheduled,past,verifiedCount,
    lateMinutes,undertimeMinutes:earlyMinutes,needsReview,timeAnomaly:Boolean(anomalous),approvedOB:Boolean(approvedOB),authorizationConflict:Boolean(authorizationConflict),
@@ -155,6 +166,8 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
    temporaryMemoId:adjustment?.memoId||null,temporaryHours:adjustment?.hours||null});
  }
  if(!configured){summary.tardyMinutes=null;summary.undertimeMinutes=null;}
+ // A monthly report without valid prescribed hours cannot be signature-ready.
+ if(!timeConfigured)summary.hasUnreviewed=true;
  return {summary,assessments};
 }
 module.exports={SLOTS,isTime,validHours,summarizeForm48};
