@@ -5,10 +5,10 @@ const {dateOk}=require('./staff-leave-policy');
 const {manilaDate}=require('./staff-lunch-routes');
 const {isFile}=require('./principal-sdo-routes');
 const UUID=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
-const MONTH=/^(20\\d{2}|2100)-(0[1-9]|1[0-2])$/;
+const MONTH=/^(20\d{2}|2100)-(0[1-9]|1[0-2])$/;
 const root='/api/staff-attendance/admin/form48/signed-archives';
 function headerText(req,name,max){
- try{const s=decodeURIComponent(String(req.headers[name]||'')).trim();return s.length>=3&&s.length<=max&&!/[\\u0000-\\u001f\\u007f]/.test(s)?s:null;}catch{return null;}
+ try{const s=decodeURIComponent(String(req.headers[name]||'')).trim();return s.length>=3&&s.length<=max&&!/[\u0000-\u001f\u007f]/.test(s)?s:null;}catch{return null;}
 }
 function scope(req){
  const staffUserId=String(req.query?.staffUserId||''),month=String(req.query?.month||'');
@@ -18,7 +18,7 @@ function parseSignedArchive(req,today=manilaDate()){
  const s=scope(req),reference=headerText(req,'x-approval-reference',120),reason=headerText(req,'x-revision-reason',1000);
  const signedOn=String(req.headers['x-signed-on']||''),v=String(req.headers['x-prior-version']??'');
  if(!s||!reference||!reason||!dateOk(signedOn)||signedOn>today||s.month>=today.slice(0,7)||signedOn.slice(0,7)<s.month||
-    !/^(0|[1-9]\\d{0,8})$/.test(v)||req.headers['x-signed-evidence-verified']!=='true'||
+    !/^(0|[1-9]\d{0,8})$/.test(v)||req.headers['x-signed-evidence-verified']!=='true'||
     !Buffer.isBuffer(req.body)||req.body.length>4194304||!isFile(req.body,'application/pdf'))return null;
  return {...s,reference,reason,signedOn,priorVersion:Number(v),sha:createHash('sha256').update(req.body).digest('hex')};
 }
