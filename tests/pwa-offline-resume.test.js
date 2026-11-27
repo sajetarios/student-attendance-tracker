@@ -71,3 +71,33 @@ test('verified Gatekeeper recovers directly into scanner, never a cached private
  handlers.pageshow({persisted:true});await new Promise(resolve=>setImmediate(resolve));
  assert.equal(target,'/gate-offline.html');assert.equal(root.style.visibility,'hidden');
 });
+
+
+test('only explicitly prepared Gatekeeper browser can reopen offline, with bounded account and device expiry',async()=>{
+ const local=storage(),first=launch(local,{standalone:false,online:true});
+ first.guard.record(gate,expires());
+ assert.equal(launch(local,{standalone:false}).guard.current(),null);
+ const deadline=Date.now()+1800000;
+ assert.equal(first.guard.markGatePrepared({role:'GATE_KEEPER',schoolId:'other',userId:'guard',validUntil:new Date(deadline).toISOString()}),false);
+ assert.equal(first.guard.markGatePrepared({role:'GATE_KEEPER',schoolId:'school',userId:'guard',validUntil:new Date(deadline).toISOString()}),true);
+ const reopened=launch(local,{standalone:false});
+ assert.equal(reopened.guard.current('GATE_KEEPER').accountId,'guard');
+ assert.equal(reopened.guard.current('GATE_KEEPER').until,deadline);
+ assert.equal(reopened.guard.current('TEACHER'),null);
+ first.guard.clearGateResume();assert.equal(launch(local,{standalone:false}).guard.current(),null);
+ assert.equal(first.guard.markGatePrepared({role:'GATE_KEEPER',schoolId:'school',userId:'guard',validUntil:new Date(deadline).toISOString()}),true);
+ first.guard.clear();assert.equal(launch(local,{standalone:false}).guard.current(),null);
+});
+test('prepared Gatekeeper browser cannot resume after server rejection, account switch or expired device',async()=>{
+ const local=storage(),first=launch(local,{standalone:false,online:true});
+ first.guard.record(gate,expires());
+ const scope={role:'GATE_KEEPER',schoolId:'school',userId:'guard',validUntil:expires()};
+ assert.equal(first.guard.markGatePrepared({...scope,validUntil:new Date(Date.now()-1000).toISOString()}),false);
+ assert.equal(first.guard.markGatePrepared(scope),true);
+ const rejected=launch(local,{standalone:false,online:true,fetch:async()=>({status:401,ok:false})});
+ assert.equal(await rejected.guard.authorize('GATE_KEEPER'),null);
+ assert.equal(launch(local,{standalone:false}).guard.current(),null);
+ first.guard.record(gate,expires());first.guard.markGatePrepared(scope);
+ launch(local,{standalone:false,online:true}).guard.record(teacher,expires());
+ assert.equal(launch(local,{standalone:false}).guard.current(),null);
+});
