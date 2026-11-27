@@ -102,7 +102,7 @@ async function registerShell(){
  // The service worker installs all public offline dependencies atomically.
  // Check a complete release cache, rather than creating an obsolete cache that
  // the next service-worker activation will delete.
- const assets=['/gate-offline.html','/gate-offline.js?v=4','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
+ const assets=['/gate-offline.html','/gate-offline.js?v=5','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
  for(const cacheName of (await caches.keys()).filter(name=>name.startsWith('attendigo-v'))){
   const results=await Promise.all(assets.map(asset=>caches.match(asset,{cacheName})));
   if(results.every(response=>response?.ok))return;
@@ -275,14 +275,21 @@ function bind(id,callback){
 }
 bind('prepare',prepare);bind('unlock',unlock);bind('lock',lock);bind('start',start);bind('stop',stop);bind('renew',renew);bind('sync',sync);
 bind('clearPractice',()=>discardSelected(true));bind('clearPending',()=>discardSelected(false));
-window.addEventListener('online',()=>{connectivity();if(data&&data.events.some(item=>item.practice!==true))sync().catch(e=>{$('syncResult').textContent=e.message;});});
+window.addEventListener('online',()=>{connectivity();void refreshAccess().then(()=>{if(data&&data.events.some(item=>item.practice!==true))return sync();}).catch(e=>{$('syncResult').textContent=e.message;});});
 window.addEventListener('offline',connectivity);
 window.addEventListener('pagehide',()=>{void stop();secretKey=null;data=null;salt=null;lastScan='';lastScanAt=0;$('queue').replaceChildren();view();}); // never keep decoded badge tokens after navigation
 window.addEventListener('pageshow',event=>{if(event.persisted&&guard?.current('GATE_KEEPER'))view();}); // restore the unlock controls after a cached page returns
 function deny(){void lock();$('pass').value='';$('newPass').value='';$('queue').replaceChildren();for(const id of ['unlockPanel','preparePanel','scanPanel','syncPanel'])$(id).hidden=true;$('network').textContent='Gatekeeper access restricted. Reconnect to switch accounts.';}
 guard?.watch(()=>{if(!guard.current('GATE_KEEPER')||(data&&!matchesGate(data.scope)))deny();});
-connectivity();(async()=>{if(!await guard?.authorize('GATE_KEEPER')){deny();return null;}$('unlockPanel').hidden=false;$('preparePanel').hidden=false;return await readDoc();})().then(doc=>{
- if(!guard?.current('GATE_KEEPER'))return;
- $('prepareResult').textContent=doc?'Device already prepared. Unlock using its passphrase.':'No prepared device on this browser.';
-}).catch(error=>{$('prepareResult').textContent='Local storage unavailable: '+error.message;});
+async function refreshAccess(){
+ if(!await guard?.authorize('GATE_KEEPER')||!guard.current('GATE_KEEPER')){deny();return;}
+ connectivity();
+ $('unlockPanel').hidden=false;$('preparePanel').hidden=false;view();
+ try{
+  const doc=await readDoc();
+  if(!guard.current('GATE_KEEPER')){deny();return;}
+  $('prepareResult').textContent=doc?'Device already prepared. Unlock using its passphrase.':'No prepared device on this browser. Connect to prepare it.';
+ }catch(error){$('prepareResult').textContent='Local storage unavailable: '+error.message;}
+}
+connectivity();void refreshAccess().catch(()=>deny());
 })();

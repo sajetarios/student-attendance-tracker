@@ -68,7 +68,8 @@
       // Do not unlock a protected dashboard offline. Its public recovery page
       // exposes only the verified account's separately protected offline tools.
       if(navigator.onLine===false && navigator.serviceWorker?.controller){
-        window.location.replace('/offline-welcome.html');
+        const gate = window.AttendigoOfflineAccount?.current('GATE_KEEPER');
+        window.location.replace(gate && !studentPage && document.documentElement.dataset.protectedRole === 'STAFF' ? '/gate-offline.html' : '/offline-welcome.html');
         return;
       }
       // Never expose stale protected content when the session cannot be verified.
@@ -81,7 +82,7 @@
         overlay.innerHTML = '<strong>Unable to verify your session</strong><p>Connect to the internet and reload this page to continue securely.</p><button type="button" style="padding:10px 20px;cursor:pointer">Retry</button>';
         document.body.appendChild(overlay);
         overlay.querySelector('button').addEventListener('click', () => verify({ block: true }));
-        const link=document.createElement('a');link.href='/offline-welcome.html';link.textContent='Open Attendigo offline tools';link.style.marginTop='18px';overlay.appendChild(link);
+        const link=document.createElement('a');link.href=(!studentPage && document.documentElement.dataset.protectedRole === 'STAFF' && window.AttendigoOfflineAccount?.current('GATE_KEEPER'))?'/gate-offline.html':'/offline-welcome.html';link.textContent='Open Attendigo offline tools';link.style.marginTop='18px';overlay.appendChild(link);
       }
       document.documentElement.style.visibility = '';
       for (const child of document.body.children) if (child !== overlay) child.style.visibility = 'hidden';

@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v474-gatekeeper-offline-scanner";
+const CACHE = "attendigo-v475-gatekeeper-offline-entry";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -18,7 +18,7 @@ const OFFLINE_REQUIRED = [
   "/offline-sheet.js?v=8",
   "/attendance-sync-center.js?v=3",
   "/attendance-sync-center.css?v=4",
-  "/gate-offline.js?v=4",
+  "/gate-offline.js?v=5",
   "/student-qr-offline.js?v=4",
   "/student-qr-offline-page.js?v=5",
   "/student-qr-scanner.js?v=6",
@@ -79,6 +79,7 @@ const SHELL = [
   "/photo-editor.js?v=11",
   "/photo-editor.js?v=9",
   "/session-guard.js?v=6",
+  "/session-guard.js?v=7",
   "/flicker-diagnostics.js?v=1",
   "/school-header-responsive.js?v=2",
   "/student-portal-refinement.css?v=3",
@@ -116,7 +117,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=249",
+  "/portal.js?v=250",
   "/attendigo-help-topics.js?v=4",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=5",
@@ -163,7 +164,7 @@ const SHELL = [
   "/offline-attendance.js?v=5",
   "/offline-sheet.html",
   "/gate-offline.html",
-  "/gate-offline.js?v=4",
+  "/gate-offline.js?v=5",
   "/gate-offline-review.html",
   "/gate-offline-review.css?v=1",
   "/gate-offline-review.js?v=1",
