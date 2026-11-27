@@ -107,7 +107,8 @@ const REQUIRED_MIGRATIONS = [
   '099_locator_recognition_hints.sql',
   '100_ob_completion_verification.sql',
   '101_staff_leave_sessions_and_revisions.sql',
-  '102_staff_form48_signed_archives.sql'
+  '102_staff_form48_signed_archives.sql',
+  '103_staff_leave_future_amendment.sql'
 ];
 
 function checksum(content) {
