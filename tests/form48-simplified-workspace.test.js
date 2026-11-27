@@ -24,10 +24,10 @@ test('Simplified Form 48 preserves print and DTR source and invalidates old cach
  assert.match(js,/@page\{size:A4 portrait;margin:5mm\}/);
  assert.match(js,/api\('\/api\/staff-attendance\/admin\/form48\/analysis\?/);
  assert.match(html,/form48-report\.css\?v=19/);
- assert.match(html,/form48-report\.js\?v=22/);
+ assert.match(html,/form48-report\.js\?v=23/);
  assertCacheRevisionAtLeast(sw,316);
  assert.match(sw,/form48-report\.css\?v=19/);
- assert.match(sw,/form48-report\.js\?v=22/);
+ assert.match(sw,/form48-report\.js\?v=23/);
 });
 
 test('mobile heading avoids stretched school hours control and month overflow',()=>{
