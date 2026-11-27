@@ -151,7 +151,7 @@ test('real encrypted Gatekeeper device unlock distinguishes a wrong passphrase, 
  const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify({scope,events:[]})));
  const doc={salt:Buffer.from(salt).toString('base64'),iv:Buffer.from(iv).toString('base64'),ciphertext:Buffer.from(cipher).toString('base64')};
  let stored=doc,match=false;
- const fn=vm.runInNewContext("let data=null,secretKey=null,salt=null,storedDoc=null; const encoder=new TextEncoder(),decoder=new TextDecoder(); const un64=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));"+derive+unlock+";unlock",{crypto,TextEncoder,TextDecoder,atob,$,guard:{authorize:async()=>true},readDoc:async()=>stored,matchesGate:()=>match,view:()=>{}});
+ const fn=vm.runInNewContext("let data=null,secretKey=null,salt=null,storedDoc=null,recoveryBusy=false; const encoder=new TextEncoder(),decoder=new TextDecoder(); const un64=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));"+derive+unlock+";unlock",{crypto,TextEncoder,TextDecoder,atob,$,guard:{authorize:async()=>true},readDoc:async()=>stored,matchesGate:()=>match,view:()=>{}});
  $('pass').value=pass;await assert.rejects(fn(),/different Gatekeeper account or school/);
  match=true;$('pass').value='wrong-password';await assert.rejects(fn(),/original device passphrase did not unlock/);
  stored={...doc,iv:''};$('pass').value=pass;await assert.rejects(fn(),/damaged or incomplete/);
