@@ -18,7 +18,8 @@ function setup(){
   if(sql.includes('FROM staff_form48_school_defaults'))return {rows:[{workdays:[1,2,3,4,5],regularHours:hours,saturdayHours:{},revision:1}]};
   if(sql.includes('FROM staff_form48_monthly_reviews'))return {rows:[]};
   if(sql.includes('FROM staff_form48_employee_schedules'))return {rows:[]};
-  if(sql.includes('FROM staff_leave_requests'))return {rows:[{from:'2026-11-20',to:'2026-11-20'}]};
+  if(sql.includes('FROM staff_leave_requests')&&sql.includes("leave_type='SICK'"))return {rows:[{from:'2026-11-20',to:'2026-11-20'}]};
+  if(sql.includes('FROM staff_leave_requests')&&sql.includes("leave_type<>'SICK'"))return {rows:[{from:'2026-11-19',to:'2026-11-19'}]};
   if(sql.includes('FROM school_users'))return {rows:[{teacher_status:'ACTIVE'}]};
   return {rows:[],rowCount:0};
  }};
@@ -41,6 +42,8 @@ test('Form 48 analysis includes pending sick leave without inventing verified pu
  const {get,queries}=setup(),result=await get('/api/staff-attendance/admin/form48/analysis');
  assert.equal(result.code,200);
  assert.equal(result.body.pendingSickLeaveCount,1);
+ assert.equal(result.body.pendingOtherLeaveCount,1);
+ assert.equal(result.body.assessments.find(day=>day.date==='2026-11-19').status,'LEAVE_REVIEW');
  assert.equal(result.body.assessments.find(day=>day.date==='2026-11-20').status,'SICK_LEAVE_PENDING');
  assert.equal(result.body.summary.daysPresent,0);
  const pending=queries.find(q=>q.sql.includes('FROM staff_leave_requests'));
