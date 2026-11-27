@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v478-gatekeeper-prepared-resume";
+const CACHE = "attendigo-v479-gatekeeper-cold-reopen";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -14,11 +14,12 @@ const OFFLINE_REQUIRED = [
   "/app-dialog.js?v=1",
   "/typography.css?v=1",
   "/offline-account-guard.js?v=1",
+  "/offline-account-guard.js?v=2",
   "/offline-attendance.js?v=5",
   "/offline-sheet.js?v=8",
   "/attendance-sync-center.js?v=3",
   "/attendance-sync-center.css?v=4",
-  "/gate-offline.js?v=8",
+  "/gate-offline.js?v=9",
   "/student-qr-offline.js?v=4",
   "/student-qr-offline-page.js?v=5",
   "/student-qr-scanner.js?v=6",
@@ -117,7 +118,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=250",
+  "/portal.js?v=251",
   "/attendigo-help-topics.js?v=4",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=5",
@@ -164,7 +165,7 @@ const SHELL = [
   "/offline-attendance.js?v=5",
   "/offline-sheet.html",
   "/gate-offline.html",
-  "/gate-offline.js?v=8",
+  "/gate-offline.js?v=9",
   "/gate-offline-review.html",
   "/gate-offline-review.css?v=1",
   "/gate-offline-review.js?v=1",
@@ -241,6 +242,11 @@ self.addEventListener("install", event => {
     }
     await self.skipWaiting();
   })());
+});
+
+// Public release identifier only; no account/session information is exposed.
+self.addEventListener("message",event=>{
+  if(event.data?.type==="ATTENDIGO_OFFLINE_RELEASE"&&event.ports?.[0])event.ports[0].postMessage({offlineRelease:CACHE});
 });
 
 self.addEventListener("activate", event => {
