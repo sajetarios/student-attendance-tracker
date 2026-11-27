@@ -15,6 +15,7 @@ const {Pool}=require('pg');
   await q("CREATE TABLE staff_form48_approved_leaves(leave_id uuid primary key, school_id uuid,staff_user_id uuid,leave_type text CHECK(leave_type IN ('MATERNITY','PATERNITY','SICK','VACATION','OTHER')),start_date date,end_date date,approval_reference text,recorded_by_user_id uuid,revoked_at timestamptz)");
   await q(fs.readFileSync(path.join(__dirname,'../migrations/074_deped_leave_vsc_workflow.sql'),'utf8'));
   await q(fs.readFileSync(path.join(__dirname,'../migrations/075_department_optional_for_leave_applicant.sql'),'utf8'));
+  await q(fs.readFileSync(path.join(__dirname,'../migrations/101_staff_leave_sessions_and_revisions.sql'),'utf8'));
   const optionalDepartment=await q("SELECT is_nullable FROM information_schema.columns WHERE table_name='staff_leave_requests' AND column_name='department_id'");
   assert.equal(optionalDepartment.rows[0].is_nullable,'YES');
   await q("INSERT INTO schools VALUES('00000000-0000-4000-8000-000000000001','Test School')");

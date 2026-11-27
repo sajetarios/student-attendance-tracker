@@ -212,7 +212,7 @@ function registerForm48BulkRoutes(app,pool,{authenticateSchoolClient,requireScho
   try{
    const rows=await pool.query(
     'SELECT l.leave_id AS "leaveId",l.staff_user_id AS "staffUserId",'+
-    ' s.display_name AS "displayName",l.leave_type AS "leaveType",'+
+    ' s.display_name AS "displayName",l.leave_type AS "leaveType",l.leave_session AS "leaveSession",'+
     ' to_char(l.start_date,\'YYYY-MM-DD\') AS "startDate",'+
     ' to_char(l.end_date,\'YYYY-MM-DD\') AS "endDate",l.approval_reference AS "approvalReference"'+
     ' FROM staff_form48_approved_leaves l JOIN school_users s'+

@@ -2,6 +2,7 @@
 const {randomUUID,createHash}=require('node:crypto');
 const express=require('express');
 const {dateKey,certifiedSession}=require('./staff-leave-sessions');
+const {parseRevision,planRevision}=require('./staff-leave-revisions');
 const {lockStaffAuthorization,approvedObOverlapsLeave}=require('./attendance-authorization-conflicts');
 const {parseRequest,positiveDays,dateOk,canView,nextStatus,allowReviewer}=require('./staff-leave-policy');
 const {notifyLeaveTransition}=require('./staff-leave-inbox');
@@ -345,6 +346,72 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
   finally{c.release();}
  });
+ // Record a separately signed cancellation or early-return amendment. The
+ // original authorization, credit debit, and raw punches are never deleted.
+ app.post('/api/staff-leave/requests/:id/revision',...auth,async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  const input=parseRevision(req.body);
+  if(!UUID.test(req.params.id)||!input)return res.status(400).json({error:'A signed revision, official reference, decision date, reason and current revision are required.'});
+  const c=await pool.connect();
+  try{
+   await c.query('BEGIN');
+   const row=await getStaff(req,res,req.params.id,true,c);
+   if(!row){await c.query('ROLLBACK');return;}
+   if(!allowReviewer(req.auth.role,req.auth.userId,req.auth.departmentId,row,'REVISION')){
+    await c.query('ROLLBACK');return res.status(403).json({error:'Only the authorized official (or the designated Admin recording a principal SDO decision) may amend another employee’s approved leave.'});}
+   if(row.revision!==input.revision){await c.query('ROLLBACK');return res.status(409).json({error:'Leave record changed. Refresh before recording a revision.'});}
+   await lockStaffAuthorization(c,req.auth.schoolId,row.staff_user_id);
+   const signed=await c.query(`SELECT d.document_id FROM staff_leave_documents d
+    WHERE d.school_id=$1 AND d.request_id=$2 AND d.document_id=$3 AND d.document_kind='REVISION'
+    AND d.uploaded_by_user_id=$4 AND NOT EXISTS(SELECT 1 FROM staff_leave_revisions v WHERE v.school_id=d.school_id AND v.document_id=d.document_id)
+    FOR UPDATE OF d`,[req.auth.schoolId,row.request_id,input.documentId,req.auth.userId]);
+   if(!signed.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Attach a new signed amendment or cancellation document from the authorized official.'});}
+   const old=await c.query(`SELECT l.*,to_char(l.start_date,'YYYY-MM-DD') AS start_date,to_char(l.end_date,'YYYY-MM-DD') AS end_date
+    FROM staff_form48_approved_leaves l WHERE l.school_id=$1 AND l.staff_user_id=$2 AND l.leave_id=$3 AND l.revoked_at IS NULL FOR UPDATE OF l`,
+    [req.auth.schoolId,row.staff_user_id,row.form48_leave_id]);
+   const original=old.rows[0];
+   if(!original||original.start_date!==row.start_date||original.end_date!==row.end_date||original.credit_account!==row.credit_account||
+     original.leave_type!==row.leave_type||(original.leave_session||'FULL')!==(row.leave_session||'FULL')){
+    await c.query('ROLLBACK');return res.status(409).json({error:'Official leave and its Form 48 record do not agree. Reconcile the existing evidence first.'});}
+   const ledger=await c.query(`SELECT credit_account,entry_kind,signed_days FROM staff_leave_credit_entries
+     WHERE school_id=$1 AND staff_user_id=$2 AND request_id=$3 AND status='VERIFIED' FOR UPDATE`,
+    [req.auth.schoolId,row.staff_user_id,row.request_id]);
+   const plan=planRevision(row,input,ledger.rows);
+   if(!plan){await c.query('ROLLBACK');return res.status(409).json({error:'Revision is not a supported cancellation or shortening, or the certified credit ledger does not reconcile. File extensions separately.'});}
+   const before={status:row.status,startDate:row.start_date,endDate:row.end_date,leaveSession:row.leave_session||'FULL',
+    certifiedWorkingDays:row.certified_working_days,creditAccount:row.credit_account,approvalReference:row.external_reference,
+    approverName:row.external_approver,approverPosition:row.external_approver_position,approvedOn:row.external_approved_on,form48LeaveId:row.form48_leave_id};
+   await c.query('UPDATE staff_form48_approved_leaves SET revoked_at=NOW(),revoked_by_user_id=$4 WHERE school_id=$1 AND staff_user_id=$2 AND leave_id=$3 AND revoked_at IS NULL',
+    [req.auth.schoolId,row.staff_user_id,row.form48_leave_id,req.auth.userId]);
+   let replacementId=null;
+   if(input.decision==='SHORTEN'){
+    replacementId=randomUUID();
+    await c.query(`INSERT INTO staff_form48_approved_leaves(leave_id,school_id,staff_user_id,leave_type,start_date,end_date,approval_reference,recorded_by_user_id,credit_account,leave_session)
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'FULL')`,[replacementId,req.auth.schoolId,row.staff_user_id,row.leave_type,row.start_date,input.endDate,input.reference,req.auth.userId,row.credit_account]);
+    await c.query(`UPDATE staff_leave_requests SET end_date=$3,certified_working_days=$4,form48_leave_id=$5,external_reference=$6,
+      external_approver=$7,external_approver_position=$8,external_approved_on=$9,verified_by_user_id=$10,verified_at=now(),revision=revision+1
+      WHERE school_id=$1 AND request_id=$2`,[req.auth.schoolId,row.request_id,input.endDate,input.days,replacementId,input.reference,input.approverName,input.approverPosition,input.approvedOn,req.auth.userId]);
+   }else{
+    await c.query("UPDATE staff_leave_requests SET status='CANCELLED',revision=revision+1 WHERE school_id=$1 AND request_id=$2",[req.auth.schoolId,row.request_id]);
+   }
+   if(plan.restoredDays>0){
+    await c.query(`INSERT INTO staff_leave_credit_entries(school_id,staff_user_id,credit_account,entry_kind,signed_days,request_id,status,entered_by_user_id,verified_by_user_id,verified_at,approval_reference,notes)
+     VALUES($1,$2,$3,'ADJUSTMENT',$4,$5,'VERIFIED',$6,$6,NOW(),$7,$8)`,
+     [req.auth.schoolId,row.staff_user_id,plan.account,plan.restoredDays,row.request_id,req.auth.userId,input.reference,input.reason]);
+   }
+   const after={status:input.decision==='CANCEL'?'CANCELLED':'APPROVED',startDate:row.start_date,endDate:input.endDate,
+    certifiedWorkingDays:input.days,form48LeaveId:replacementId,approvalReference:input.reference,approverName:input.approverName,
+    approverPosition:input.approverPosition,approvedOn:input.approvedOn,creditAccount:plan.account};
+   await c.query(`INSERT INTO staff_leave_revisions(school_id,request_id,document_id,actor_user_id,prior_revision,decision,previous_record,replacement_record,approval_reference,reason,restored_days)
+    VALUES($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10,$11)`,
+    [req.auth.schoolId,row.request_id,input.documentId,req.auth.userId,row.revision,input.decision,JSON.stringify(before),JSON.stringify(after),input.reference,input.reason,plan.restoredDays]);
+   await audit(c,req,'LEAVE_AUTHORIZED_REVISION',row.request_id,{before,after,documentId:input.documentId,reason:input.reason,restoredDays:plan.restoredDays});
+   await c.query("SELECT attendigo_notify($1,'SCHOOL_USER',$2,$3,'REQUEST',$4,$5,'Leave',$6,$7,$8,TRUE)",
+    [req.auth.schoolId,row.staff_user_id,'leave:'+row.request_id+':revision:'+row.revision,'Leave decision revised','A signed leave revision was recorded. Review the updated application and DTR.',row.request_id,after.status,row.requester_role==='PRINCIPAL'?'/principal.html':'/portal.html#leaveManagement']);
+   await c.query('COMMIT');
+   return res.json({status:after.status,restoredDays:plan.restoredDays,revision:row.revision+1,notice:'Signed revision recorded. Original approval, ledger entries and verified attendance evidence were preserved.'});
+  }catch(e){await c.query('ROLLBACK').catch(()=>{});return sqlErr(res,e);}finally{c.release();}
+ });
  app.get('/api/staff-leave/staff-roster',...auth,async(req,res)=>{
   if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'Only School Admin may record staff opening credit balances.'});
   try{
@@ -453,7 +520,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
  async function saveDocument(req,res,kind){
   const id=String(req.params.id||''),mime=contentType(req),documentKind=String(req.headers['x-document-kind']||'').toUpperCase();
   if(!UUID.test(id)||!['application/pdf','image/png','image/jpeg'].includes(mime)||
-   !['APPLICATION','MEDICAL','AFFIDAVIT','CERTIFICATION','APPROVAL','SPECIAL_ORDER','OTHER'].includes(documentKind)||
+   !['APPLICATION','MEDICAL','AFFIDAVIT','CERTIFICATION','APPROVAL','SPECIAL_ORDER','OTHER','REVISION'].includes(documentKind)||
    !Buffer.isBuffer(req.body)||req.body.length<1||req.body.length>4194304)
    return res.status(400).json({error:'Provide a valid PDF, JPG or PNG file up to 4 MB.'});
   try{
@@ -461,11 +528,15 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    if(kind==='REQUEST'){
     const row=await getStaff(req,res,id);
     if(!row)return;
-    if(['APPROVED','REJECTED','CANCELLED','DECLINED_HEAD'].includes(row.status))
+    if(documentKind==='REVISION'){
+     if(!allowReviewer(req.auth.role,req.auth.userId,req.auth.departmentId,row,'REVISION'))return res.status(403).json({error:'Only the authorized official may attach a signed leave revision.'});
+     if(!require('./principal-sdo-routes').isFile(req.body,mime))return res.status(400).json({error:'Provide a valid signed PDF/JPG/PNG document.'});
+    }else if(['APPROVED','REJECTED','CANCELLED','DECLINED_HEAD'].includes(row.status))
      return res.status(409).json({error:'This leave decision is finalized.'});
     if(row.requester_role==='PRINCIPAL'&&documentKind==='APPROVAL'&&req.auth.role!=='SCHOOL_ADMIN')
      return res.status(403).json({error:'Only the designated School Admin may attach a verified external decision to a principal leave request.'});
    }else{
+    if(documentKind==='REVISION')return res.status(400).json({error:'Leave revision evidence must be attached to the leave request.'});
     query=await pool.query('SELECT e.staff_user_id,u.role AS claimant_role FROM staff_leave_credit_entries e JOIN school_users u ON u.school_id=e.school_id AND u.user_id=e.staff_user_id WHERE e.school_id=$1 AND e.credit_entry_id=$2 AND e.status=\'PROPOSED\'',
      [req.auth.schoolId,id]);
     if(!query.rowCount)return res.status(404).json({error:'Unverified credit claim not found.'});

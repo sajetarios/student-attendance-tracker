@@ -9,7 +9,7 @@
   ['EXTERNAL','Awaiting official approval','external'],
   ['APPROVED','Approved','approved'],
   ['DISAPPROVED','Officially disapproved','disapproved'],
-  ['DECLINED','Declined by department','declined'],
+  ['DECLINED','Declined by department','declined'],['CANCELLED','Cancelled','cancelled'],
   ['ALL','All requests','total']
  ];
  let filter='ACTION',query='',offset=0,badge=null,badgeButton=null,badgeApi=null;
@@ -111,6 +111,40 @@
   });
   return form;
  }
+ function revisionForm(record,ctx){
+  const form=make('form','leave-inbox-review-form');
+  form.append(make('p','leave-help','Record only a separately signed cancellation or early-return amendment. An extension requires a new application. This does not authorize leave by itself.'));
+  const label=make('label','leave-inbox-field');label.append(make('span',null,'Authorized change'));
+  const choice=make('select');choice.name='decision';
+  const options=[['CANCEL','Cancel unused approved leave'],...(record.leaveSession==='FULL'&&date(record.startDate)!==date(record.endDate)?[['SHORTEN','Shorten leave after early return']]:[])];
+  options.forEach(([value,txt])=>{const o=make('option',null,txt);o.value=value;choice.append(o);});label.append(choice);form.append(label);
+  const end=createInput('Revised last day of leave','date','endDate',false),days=createInput('Revised certified working days','number','certifiedWorkingDays',false,{step:'0.001',min:'0.001'});
+  form.append(end,days);
+  const sync=()=>{for(const el of [end,days]){el.hidden=choice.value!=='SHORTEN';el.querySelector('input').required=!el.hidden;el.querySelector('input').disabled=el.hidden;}};
+  choice.addEventListener('change',sync);sync();
+  form.append(createInput('Signed amendment reference','text','approvalReference',true,{maxLength:120}),
+    createInput('Name of approving official','text','approverName',true,{maxLength:120}),
+    createInput('Official position','text','approverPosition',true,{maxLength:120}),
+    createInput('Official decision date','date','approvedOn'),
+    createInput('Reason for cancellation or early return','textarea','reason',true,{maxLength:1000}),
+    createInput('Signed revised decision (PDF, JPG or PNG)','file','file',true,{accept:'.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png'}));
+  const confirm=make('label','leave-inbox-field');const check=make('input');check.type='checkbox';check.name='evidenceVerified';check.required=true;
+  confirm.append(check,make('span',null,'I verified the signed authorization and certified unused leave/credits.'));form.append(confirm);
+  const submit=make('button','leave-primary','Record signed revision');submit.type='submit';form.append(submit);
+  form.addEventListener('submit',e=>{
+   e.preventDefault();if(!form.reportValidity())return;
+   const d=new FormData(form),file=d.get('file');
+   if(!(file instanceof File)||!file.size){notify(ctx.message,'Attach the signed revised decision.',true);return;}
+   void ctx.action('Recording signed leave revision',async()=>{
+    const doc=await ctx.upload('/requests/'+record.requestId+'/documents',file,'REVISION');
+    return ctx.call('/requests/'+record.requestId+'/revision','POST',{
+     decision:safeText(d.get('decision')),endDate:safeText(d.get('endDate')),certifiedWorkingDays:Number(d.get('certifiedWorkingDays')),
+     approvalReference:safeText(d.get('approvalReference')),approverName:safeText(d.get('approverName')),
+     approverPosition:safeText(d.get('approverPosition')),approvedOn:safeText(d.get('approvedOn')),reason:safeText(d.get('reason')),
+     documentId:doc.documentId,revision:record.revision,evidenceVerified:check.checked});
+   });
+  });return form;
+ }
  function card(record,ctx){
   const article=make('article','leave-inbox-card');
   const head=make('div','leave-card-top');
@@ -160,6 +194,7 @@
   }else if(record.status==='PENDING_EXTERNAL' && !record.own){
    article.append(make('p','leave-help','Awaiting an officially signed decision. No final approval has been recorded.'));
   }
+  if(record.actions?.revise){const details=make('details','leave-approval leave-inbox-action');details.append(make('summary',null,'Record authorized cancellation / amendment'),revisionForm(record,ctx));article.append(details);}
   return article;
  }
  async function render(ctx){
@@ -180,7 +215,7 @@
   summary.setAttribute('aria-label','Filter leave approval requests');
   const status=make('div','leave-inbox-count-note','Loading application statuses…');
   if(isAdmin)summary.classList.add('leave-admin-summary');
-  const filters=isAdmin?[['PENDING','Pending','pending'],['APPROVED','Approved','approved'],['CLOSED_DECLINED','Declined','closedDeclined']]:ctx.user.role==='PRINCIPAL'?FILTERS.filter(([value])=>['ACTION','APPROVED','DISAPPROVED','ALL'].includes(value)):FILTERS;
+  const filters=isAdmin?[['PENDING','Pending','pending'],['APPROVED','Approved','approved'],['CLOSED_DECLINED','Declined','closedDeclined']]:ctx.user.role==='PRINCIPAL'?FILTERS.filter(([value])=>['ACTION','APPROVED','DISAPPROVED','CANCELLED','ALL'].includes(value)):FILTERS;
   filters.forEach(([value,label,key])=>{
    const b=make('button',filter===value?'leave-inbox-filter is-current':'leave-inbox-filter');
    b.type='button';b.dataset.filter=value;b.setAttribute('aria-pressed',String(filter===value));
