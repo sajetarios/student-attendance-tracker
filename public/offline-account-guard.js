@@ -50,9 +50,14 @@
  }
  function restoreInstalled(role){
   try{
-   if(sessionStorage.getItem(TAB)!==null)return null;
+   const rawTab=sessionStorage.getItem(TAB),tab=parse(sessionStorage,TAB);
    const gateUntil=(!role||role==='GATE_KEEPER')?gateResumeUntil():null;
-   if(gateUntil){const stamp={...parse(localStorage,GATE),until:gateUntil};sessionStorage.setItem(TAB,JSON.stringify(stamp));return stamp;}
+   // Safari may restore an older, expired tab after a different tab renewed
+   // the same dedicated scanner. Only replace an absent tab or a well-formed
+   // tab with the same account AND epoch; never override a different identity.
+   const prepared=parse(localStorage,GATE);
+   if(gateUntil&&(rawTab===null||(same(tab,prepared)&&tab.epoch===prepared.epoch))){const stamp={...prepared,until:gateUntil};sessionStorage.setItem(TAB,JSON.stringify(stamp));return stamp;}
+   if(rawTab!==null)return null;
    if(!installed())return null;
    const saved=parse(localStorage,INSTALLED),active=parse(localStorage,KEY);
    if(!saved||!staffOffline(saved.role)||!same(saved,active)||!saved.epoch||saved.epoch!==active.epoch||
@@ -64,9 +69,9 @@
  }
  function current(role){
   try{
-   const a=parse(sessionStorage,TAB)||(navigator.onLine===false?restoreInstalled(role):null),b=parse(localStorage,KEY);
-   if(!same(a,b)||!a.epoch||a.epoch!==b.epoch||a.until<=Date.now()||b.until<=Date.now()||(role&&a.role!==role))return null;
-   return a;
+   const a=parse(sessionStorage,TAB),b=parse(localStorage,KEY);
+   if(same(a,b)&&a.epoch&&a.epoch===b.epoch&&Number.isFinite(a.until)&&Number.isFinite(b.until)&&a.until>Date.now()&&b.until>Date.now()&&(!role||a.role===role))return a;
+   return navigator.onLine===false?restoreInstalled(role):null;
   }catch{return null;}
  }
  function matches(role,schoolId,accountId){const a=current(role);return !!a&&a.schoolId===String(schoolId)&&a.accountId===String(accountId);}
