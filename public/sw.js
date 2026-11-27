@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v480-attendance-reconciliation";
+const CACHE = "attendigo-v481-dtr-reconciliation-candidate";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -139,7 +139,7 @@ const SHELL = [
   "/teacher-teaching-overview.css?v=3",
   "/teacher-dashboard-v3.js?v=1",
   "/teacher-teaching-overview.js?v=4",
-  "/form48-report.js?v=22",
+  "/form48-report.js?v=23",
   "/missing-scan-ui.js?v=8",
   "/missing-scan-ui.css?v=4",
   "/form48-intelligence.js?v=4",
