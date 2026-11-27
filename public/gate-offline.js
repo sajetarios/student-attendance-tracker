@@ -10,7 +10,8 @@ const encoder=new TextEncoder(),decoder=new TextDecoder();
 const QR=/^(JHS|TCH):([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
 let data=null,secretKey=null,salt=null,scanner=null,active=false,syncing=false,lastScan='',lastScanAt=0;
 let writes=Promise.resolve();
-let queueBusy=false;
+let queueBusy=false,storedDoc=null,recoveryBusy=false;
+const sameDoc=(a,b)=>!a&&!b||!!a&&!!b&&a.id===b.id&&a.salt===b.salt&&a.iv===b.iv&&a.ciphertext===b.ciphertext;
 const notice=(id,value,error=false)=>{
  const el=$(id);el.textContent=value;
  if(id==='scanResult'||id==='network')el.className='status'+(error?' error':'');
@@ -30,10 +31,19 @@ async function readDoc(){
   req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);
  });}finally{db.close();}
 }
-async function writeDoc(doc){
+// Compare the exact encrypted profile inside one transaction, so a stale tab
+// cannot resurrect a reset profile or overwrite a newly changed passphrase.
+async function replaceDoc(expected,next,check){
  const db=await openDb();try{await new Promise((resolve,reject)=>{
-  const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(doc);
-  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
+  const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE),req=store.get(KEY);
+  let error=null;
+  req.onsuccess=()=>{
+   try{
+    if(!check()||!sameDoc(req.result||null,expected))throw Error('Device profile changed or account access expired. Reopen the scanner before trying again.');
+    if(next)store.put(next);else store.delete(KEY);
+   }catch(e){error=e;tx.abort();}
+  };
+  tx.oncomplete=resolve;tx.onerror=()=>reject(error||tx.error);tx.onabort=()=>reject(error||tx.error||Error('Device storage change canceled.'));
  });}finally{db.close();}
 }
 async function derive(passphrase,s){
@@ -44,18 +54,24 @@ async function derive(passphrase,s){
 async function save(){
  if(!matchesGate(data?.scope))throw Error('Offline Gatekeeper account changed.');
  if(!data||!secretKey)throw Error('Unlock this device first.');
- const documentCopy=JSON.stringify(data),key=secretKey,documentSalt=salt;
+ const documentCopy=JSON.stringify(data),key=secretKey,documentSalt=salt,scope=data.scope;
  writes=writes.catch(()=>{}).then(async()=>{
   const iv=crypto.getRandomValues(new Uint8Array(12));
   const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,encoder.encode(documentCopy));
-  await writeDoc({id:KEY,salt:b64(documentSalt),iv:b64(iv),ciphertext:b64(new Uint8Array(cipher))});
+  const next={id:KEY,salt:b64(documentSalt),iv:b64(iv),ciphertext:b64(new Uint8Array(cipher)),owner:{schoolId:String(scope.schoolId),userId:String(scope.userId)}};
+  await replaceDoc(storedDoc,next,()=>matchesGate(scope));storedDoc=next;
  });
  return writes;
 }
 function view(){
  const unlocked=!!data&&matchesGate(data.scope);
+ $('recoveryPanel').hidden=!unlocked&&!storedDoc;
+ $('changePassphrase').disabled=!unlocked||active||syncing||queueBusy||recoveryBusy;
+ $('safeReset').disabled=!unlocked||active||syncing||queueBusy||recoveryBusy;
+ $('forgotReset').hidden=unlocked;
+ $('forgotReset').disabled=unlocked||recoveryBusy||!online();
  $('scanPanel').hidden=!unlocked;$('syncPanel').hidden=!unlocked;
- $('lock').disabled=!unlocked;$('unlock').disabled=unlocked;
+ $('lock').disabled=!unlocked||recoveryBusy;$('unlock').disabled=unlocked||recoveryBusy;
  $('prepare').disabled=unlocked;
  if(!unlocked)return;
  $('preparedScope').textContent='Authorized device profile: '+data.scope.role+
@@ -67,7 +83,7 @@ function view(){
    (practiceCount?' · '+practiceCount+' practice scan'+(practiceCount===1?'':'s'):'');
  $('clearPending').disabled=queueBusy||syncing||active||officialCount===0;
  $('clearPractice').disabled=queueBusy||syncing||active||practiceCount===0;
- $('sync').disabled=queueBusy||syncing||officialCount===0;
+ $('sync').disabled=recoveryBusy||queueBusy||syncing||officialCount===0;
  $('queue').replaceChildren();
  for(const item of data.events.slice(-30).reverse()){
   const li=document.createElement('li');
@@ -84,7 +100,7 @@ function view(){
   li.append(discard);
   $('queue').append(li);
  }
- $('start').disabled=active||Date.now()>Date.parse(data.scope.validUntil)||data.events.length>=2000;
+ $('start').disabled=recoveryBusy||active||Date.now()>Date.parse(data.scope.validUntil)||data.events.length>=2000;
  $('stop').disabled=!active;
 }
 async function api(path,opts={}){
@@ -102,7 +118,7 @@ async function registerShell(){
  // The service worker installs all public offline dependencies atomically.
  // Check a complete release cache, rather than creating an obsolete cache that
  // the next service-worker activation will delete.
- const assets=['/gate-offline.html','/gate-offline.js?v=6','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
+ const assets=['/gate-offline.html','/gate-offline.js?v=7','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'];
  for(const cacheName of (await caches.keys()).filter(name=>name.startsWith('attendigo-v'))){
   const results=await Promise.all(assets.map(asset=>caches.match(asset,{cacheName})));
   if(results.every(response=>response?.ok))return;
@@ -124,7 +140,7 @@ async function prepare(){
   if(!matchesGate(identity))throw Error('Gatekeeper account mismatch.');
   salt=crypto.getRandomValues(new Uint8Array(16));
   secretKey=await derive(pass,salt);
-  data={scope:identity,events:[]};
+  storedDoc=null;data={scope:identity,events:[]};
   await save();$('newPass').value='';$('confirmPass').value='';$('pass').value='';
   $('preparePanel').hidden=true;$('unlockPanel').hidden=false;$('unlockStatus').textContent='Device prepared. Keep your passphrase private.';
   $('prepareResult').textContent='Prepared and encrypted. Keep your passphrase private.';
@@ -178,7 +194,7 @@ async function unlock(){
  try{
   const {decoded,key,deviceSalt}=await decodePrepared(doc,pass);
   if(!matchesGate(decoded.scope))throw Error('This prepared scanner belongs to a different Gatekeeper account or school. Sign in online with the original account. Your encrypted records have not been changed.');
-  data=decoded;secretKey=key;salt=deviceSalt;$('pass').value='';resetPassVisibility();
+  storedDoc=doc;data=decoded;secretKey=key;salt=deviceSalt;$('pass').value='';resetPassVisibility();
   $('unlockStatus').textContent='Scanner unlocked.';
   $('syncResult').textContent='Unlocked. Internet not required to capture; syncing requires the same signed-in Gatekeeper.';
   view();
@@ -190,6 +206,7 @@ async function lock(){
  $('scanResult').textContent='Device locked.';
 }
 async function receive(text){
+ if(recoveryBusy)return;
  if(!matchesGate(data?.scope)){await lock();return;}
  if(!data||Date.now()>Date.parse(data.scope.validUntil)){notice('scanResult','Offline authorization expired. Reconnect and renew by preparing a device again after securely syncing existing scans.',true);await stop();return;}
  const raw=String(text||'').trim(),match=QR.exec(raw);
@@ -213,7 +230,7 @@ async function receive(text){
 }
 async function start(){
  if(!matchesGate(data?.scope))throw Error('Verified Gatekeeper account required.');
- if(!data)return;
+ if(!data||recoveryBusy)return;
  if(Date.now()>Date.parse(data.scope.validUntil))throw Error('Prepared scanner expired. Reconnect to prepare a new session after syncing.');
  if(typeof Html5Qrcode==='undefined')throw Error('Offline camera library not available. Reconnect and reload after preparation.');
  if(!scanner)scanner=new Html5Qrcode('reader');
@@ -231,7 +248,7 @@ async function sync(){
  if(!matchesGate(data?.scope))throw Error('Verified Gatekeeper account required.');
  if(!data||!data.events.some(item=>item.practice!==true))return $('syncResult').textContent='No pending non-practice scans to synchronize.';
  if(!online())throw Error('Connect to Wi-Fi or mobile data to synchronize.');
- if(syncing||queueBusy)return;
+ if(syncing||queueBusy||recoveryBusy)return;
  syncing=true;$('sync').disabled=true;
  try{
   const identity=await api('/api/gate/offline/prepare');
@@ -259,7 +276,7 @@ async function sync(){
 async function discardEvents(ids,description){
  if(!matchesGate(data?.scope))throw Error('Verified Gatekeeper account required.');
  if(!data||!secretKey)throw Error('Unlock the scanner first.');
- if(syncing||queueBusy||active)throw Error('Stop scanning or synchronization before discarding observations.');
+ if(syncing||queueBusy||active||recoveryBusy)throw Error('Stop scanning or synchronization before discarding observations.');
  const selected=new Set(ids),matching=data.events.filter(event=>selected.has(event.eventId));
  if(!matching.length)return;
  if(!await window.AppDialog.confirm('Permanently discard '+matching.length+' '+description+(matching.length===1?'':'s')+
@@ -279,8 +296,64 @@ async function discardSelected(practice){
  const selected=data.events.filter(item=>(item.practice===true)===practice);
  return discardEvents(selected.map(item=>item.eventId),practice?'practice observation':'pending observation');
 }
+async function verifyRecoveryAccount(){
+ if(!online())throw Error('Connect to the internet before resetting or changing the device passphrase.');
+ // A cached authorization alone is insufficient for device recovery.
+ const identity=await api('/api/gate/offline/prepare');
+ if(identity.role!=='GATE_KEEPER'||!matchesGate(identity))throw Error('Sign in online as the authorized Gatekeeper.');
+ return identity;
+}
+async function withRecovery(action){
+ if(active||syncing||queueBusy||recoveryBusy)throw Error('Stop scanning and wait for synchronization before managing the device.');
+ recoveryBusy=true;view();
+ try{await writes;await action();}finally{recoveryBusy=false;view();}
+}
+async function changePassphrase(){
+ return withRecovery(async()=>{
+  const identity=await verifyRecoveryAccount();
+  if(!data||!secretKey||!matchesGate(data.scope))throw Error('Unlock the original device first.');
+  const original=storedDoc;
+  const fields=await window.AppDialog.form('Enter your original passphrase and a new private passphrase. All pending observations will be preserved.',[
+   {name:'old',label:'Original passphrase',type:'password',required:true},
+   {name:'next',label:'New passphrase',type:'password',required:true},
+   {name:'confirm',label:'Confirm new passphrase',type:'password',required:true}
+  ],{title:'Change device passphrase',confirmText:'Change passphrase'});
+  if(!fields)return;
+  if(fields.next.length<12||fields.next!==fields.confirm)throw Error('Use matching new passphrases with at least 12 characters.');
+  const {decoded}=await decodePrepared(original,fields.old);
+  if(!matchesGate(decoded.scope)||!matchesGate(identity)||!data)throw Error('Gatekeeper account changed.');
+  const nextSalt=crypto.getRandomValues(new Uint8Array(16)),nextKey=await derive(fields.next,nextSalt);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},nextKey,encoder.encode(JSON.stringify(decoded)));
+  const next={id:KEY,salt:b64(nextSalt),iv:b64(iv),ciphertext:b64(new Uint8Array(cipher)),owner:{schoolId:String(decoded.scope.schoolId),userId:String(decoded.scope.userId)}};
+  await replaceDoc(original,next,()=>matchesGate(identity)&&matchesGate(decoded.scope)&&!!data);
+  storedDoc=next;data=decoded;secretKey=nextKey;salt=nextSalt;
+  $('recoveryStatus').textContent='Passphrase changed. All encrypted pending observations preserved.';
+ });
+}
+async function resetDevice(forgot){
+ return withRecovery(async()=>{
+  const identity=await verifyRecoveryAccount(),original=await readDoc();
+  if(!original)throw Error('No prepared device profile exists.');
+  if(original.owner&&!matchesGate(original.owner))throw Error('This profile belongs to another Gatekeeper. Reconnect as the original account.');
+  if(!forgot){
+   if(!data||!matchesGate(data.scope)||!sameDoc(original,storedDoc))throw Error('Unlock the original device first.');
+   if(data.events.some(item=>item.practice!==true))throw Error('Synchronize all pending observations before resetting. Nothing was deleted.');
+  }else if(data)throw Error('Use the safe reset option while unlocked.');
+  // Older encrypted profiles lack owner metadata. Never discard them without
+  // explicitly confirming that the local device data belongs to this user.
+  const message=forgot?'The saved profile cannot be recovered without its original passphrase. Resetting permanently deletes ALL unsynchronized observations on this device, including any unknown pending scans. Confirm only if this is your own prepared profile and you accept losing those scans.':'All non-practice observations have been synchronized or none exist. Resetting removes this device profile and any practice scans.';
+  const confirmation=await window.AppDialog.prompt(message+' Official attendance and synchronized records will not be changed. Type RESET to continue.','',{title:forgot?'Forgot passphrase — permanent local reset':'Reset offline scanner',confirmText:'Reset device',variant:'danger',required:true,validate:value=>value==='RESET'||'Type RESET exactly.'});
+  if(confirmation!=='RESET')return;
+  const verified=await verifyRecoveryAccount();
+  if(String(verified.schoolId)!==String(identity.schoolId)||String(verified.userId)!==String(identity.userId))throw Error('Gatekeeper account changed. Reset canceled.');
+  await replaceDoc(original,null,()=>matchesGate(identity)&&(!original.owner||matchesGate(original.owner)));
+  storedDoc=null;await lock();$('unlockPanel').hidden=true;$('preparePanel').hidden=false;$('recoveryPanel').hidden=true;
+  $('prepareResult').textContent='Offline device reset. Create a new passphrase to prepare this device again.';
+ });
+}
 function connectivity(){
- const on=online();$('network').className='status'+(on?' good':'');
+ const on=online();$('forgotReset').disabled=!on||recoveryBusy||!!data;$('network').className='status'+(on?' good':'');
  $('network').textContent=on?'Network available. Scanner can capture locally and sync after Gatekeeper authorization.':
    'Offline · encrypted local captures only. No official attendance has been recorded.';
 }
@@ -289,7 +362,7 @@ function bind(id,callback){
   $(id).disabled=true;
   try{if(!guard?.current('GATE_KEEPER'))throw Error('Gatekeeper access restricted. Reconnect and sign in.');await callback();}
   catch(error){
-   const target=id==='prepare'?'prepareResult':id==='unlock'?'unlockStatus':id==='sync'?'syncResult':'scanResult';
+   const target=['changePassphrase','safeReset','forgotReset'].includes(id)?'recoveryStatus':id==='prepare'?'prepareResult':id==='unlock'?'unlockStatus':id==='sync'?'syncResult':'scanResult';
    if(target==='scanResult')notice(target,error.message,true);
    else $(target).textContent=error.message;
   }finally{view();if(id==='prepare'&&!data)$('prepare').disabled=false;if(id==='unlock'&&!data)$('unlock').disabled=false;}
@@ -297,12 +370,13 @@ function bind(id,callback){
 }
 $('showPass').addEventListener('change',()=>{$('pass').type=$('showPass').checked?'text':'password';});
 bind('prepare',prepare);bind('unlock',unlock);bind('lock',lock);bind('start',start);bind('stop',stop);bind('renew',renew);bind('sync',sync);
+bind('changePassphrase',changePassphrase);bind('safeReset',()=>resetDevice(false));bind('forgotReset',()=>resetDevice(true));
 bind('clearPractice',()=>discardSelected(true));bind('clearPending',()=>discardSelected(false));
 window.addEventListener('online',()=>{connectivity();void refreshAccess().then(()=>{if(data&&data.events.some(item=>item.practice!==true))return sync();}).catch(e=>{$('syncResult').textContent=e.message;});});
 window.addEventListener('offline',connectivity);
 window.addEventListener('pagehide',()=>{void stop();secretKey=null;data=null;salt=null;lastScan='';lastScanAt=0;$('pass').value='';$('newPass').value='';$('confirmPass').value='';resetPassVisibility();$('queue').replaceChildren();view();}); // never keep decoded badge tokens after navigation
 window.addEventListener('pageshow',event=>{if(event.persisted&&guard?.current('GATE_KEEPER'))view();}); // restore the unlock controls after a cached page returns
-function deny(){void lock();$('pass').value='';$('newPass').value='';$('confirmPass').value='';resetPassVisibility();$('queue').replaceChildren();for(const id of ['unlockPanel','preparePanel','scanPanel','syncPanel'])$(id).hidden=true;$('network').textContent='Gatekeeper access restricted. Reconnect to switch accounts.';}
+function deny(){void lock();$('pass').value='';$('newPass').value='';$('confirmPass').value='';resetPassVisibility();$('queue').replaceChildren();for(const id of ['unlockPanel','preparePanel','scanPanel','syncPanel','recoveryPanel'])$(id).hidden=true;$('network').textContent='Gatekeeper access restricted. Reconnect to switch accounts.';}
 guard?.watch(()=>{if(!guard.current('GATE_KEEPER')||(data&&!matchesGate(data.scope)))deny();});
 async function refreshAccess(){
  if(!await guard?.authorize('GATE_KEEPER')||!guard.current('GATE_KEEPER')){deny();return;}
@@ -311,7 +385,7 @@ async function refreshAccess(){
  try{
   const doc=await readDoc();
   if(!guard.current('GATE_KEEPER')){deny();return;}
-  $('unlockPanel').hidden=!doc;$('preparePanel').hidden=!!doc;
+  storedDoc=doc;$('unlockPanel').hidden=!doc;$('preparePanel').hidden=!!doc;view();
   $('prepareResult').textContent=doc?'':'No prepared device on this browser. Connect to prepare it.';
  }catch(error){$('unlockStatus').textContent='Local storage unavailable. Do not clear browser data.';}
 }
