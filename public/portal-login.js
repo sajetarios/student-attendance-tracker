@@ -31,7 +31,7 @@
     try{
       const response=await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});
       if(!response.ok)throw Error('Could not sign out the previous account.');
-      window.AttendigoOfflineAccount?.clear();
+      await window.AttendigoOfflineAccount?.clear();
       sessionStorage.removeItem('schoolAttendance.accessToken');
       sessionStorage.removeItem('schoolAttendance.user');
       sessionStorage.removeItem('schoolAttendance.expiresAt');
@@ -178,6 +178,7 @@
       sessionStorage.setItem('schoolAttendance.user', JSON.stringify(data.user));
       sessionStorage.setItem('schoolAttendance.expiresAt', data.expiresAt || '');
       window.AttendigoOfflineAccount?.record(data.user,data.expiresAt);
+      await window.AttendigoOfflineAccount?.flushGate?.();
       if (mode === 'school' && data.user.mustChangePassword) {
         window.location.assign('/force-password-change.html');
         return;
@@ -253,6 +254,7 @@
       if(!response.ok)return;
       const data=await response.json();
       window.AttendigoOfflineAccount?.record(data.user,data.expiresAt);
+      await window.AttendigoOfflineAccount?.flushGate?.();
       if(data.user?.role!=='STUDENT'||data.user.mustChangePassword)return;
       const returnTo=loginParams.get('returnTo');
       if(returnTo){
@@ -273,6 +275,7 @@
         if (!response.ok) return;
         const data = await response.json();
         window.AttendigoOfflineAccount?.record(data.user,data.expiresAt);
+      await window.AttendigoOfflineAccount?.flushGate?.();
         if (!data?.user || data.user.mustChangePassword) {
           if (data?.user?.mustChangePassword) location.replace('/force-password-change.html');
           return;
