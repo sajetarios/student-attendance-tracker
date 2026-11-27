@@ -94,7 +94,7 @@
    guidance.className='leave-guidance';
    if(status==='ACTIVE'){
     title.textContent=leave.leaveSession&&leave.leaveSession!=='FULL'?'Approved '+leave.leaveSession+' half-day leave':'On Approved Leave';
-    guidance.textContent='Your approved leave is recognized by Form 48 through the end date. '+
+    guidance.textContent=(leave.leaveSession&&leave.leaveSession!=='FULL'?'Only the authorized '+leave.leaveSession+' session is excused. Verify attendance for the remaining session. ':'Your approved leave is recognized by Form 48 through the end date. ')+
       'Physical gate scans remain recorded separately and require review if they overlap leave.';
    }else if(status==='UPCOMING'){
     title.textContent='Approved Leave Scheduled';

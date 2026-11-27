@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v473-attendance-reconciliation";
+const CACHE = "attendigo-v474-attendance-reconciliation";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -48,7 +48,7 @@ const SHELL = [
   "/attendigo-unified-navigation.js?v=1",
   "/simplified-workspace.js?v=7",
   "/simplified-workspace.css?v=1",
-  "/teacher-timetable-identities.css?v=5",
+  "/teacher-timetable-identities.css?v=6",
   "/schedule-relationships.js?v=2",
   "/fonts/InterVariable.woff2",
   "/fonts/InterVariable-Italic.woff2",
@@ -120,8 +120,8 @@ const SHELL = [
   "/attendigo-help-topics.js?v=4",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=5",
-  "/staff-leave-ui.js?v=13",
-  "/leave-approval-inbox.js?v=3",
+  "/staff-leave-ui.js?v=14",
+  "/leave-approval-inbox.js?v=4",
   "/leave-approval-inbox.css?v=3",
   "/attendigo-presenter-nav.js?v=1",
   "/staff-leave-ui.css?v=8",
@@ -138,7 +138,7 @@ const SHELL = [
   "/teacher-teaching-overview.css?v=3",
   "/teacher-dashboard-v3.js?v=1",
   "/teacher-teaching-overview.js?v=4",
-  "/form48-report.js?v=21",
+  "/form48-report.js?v=22",
   "/missing-scan-ui.js?v=8",
   "/missing-scan-ui.css?v=4",
   "/form48-intelligence.js?v=4",

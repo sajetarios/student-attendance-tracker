@@ -38,3 +38,13 @@ test('Class Adviser-only accounts can open the schedule but cannot create class 
  assert.match(js,/\$\('showScheduleForm'\)\.hidden = !\(admin \|\| \(departmentHead&&user\.departmentId&&user\.departmentCode!=='UNASSIGNED'\)\)/);
  assert.match(server,/app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
 });
+
+test('teacher timetable uses accessible vector summary icons and spacious responsive cards',()=>{
+ const html=read('public/portal.html'),css=read('public/teacher-timetable-identities.css'),sw=read('public/sw.js');
+ assert.equal((html.match(/class="tt-stat-icon" aria-hidden="true"><svg/g)||[]).length,4);
+ assert.match(css,/\.tt-teacher-refresh[^\n]*\.tt-subject \{min-height:108px!important;padding:12px 10px!important;gap:6px!important/);
+ assert.match(css,/\.tt-teacher-refresh[^\n]*\.tt-subject-section \{font-size:16px!important;line-height:1\.5!important/);
+ assert.match(css,/\.tt-teacher-refresh[^\n]*172px/);
+ assert.ok(html.includes('/teacher-timetable-identities.css?v=6'));
+ assert.ok(sw.includes('/teacher-timetable-identities.css?v=6'));
+});

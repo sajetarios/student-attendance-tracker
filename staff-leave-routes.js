@@ -323,6 +323,10 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    const overlap=await c.query('SELECT 1 FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL AND start_date<=$4::date AND end_date>=$3::date AND (leave_session=\'FULL\' OR $5=\'FULL\' OR leave_session=$5) LIMIT 1',
     [req.auth.schoolId,row.staff_user_id,row.start_date,row.end_date,leaveSession]);
    if(overlap.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Overlapping official leave exists. Reconcile before recording approval.'});}
+   if(session){
+    const intervalCollision=await c.query("SELECT 1 FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL AND start_date=$3::date AND leave_session<>'FULL' AND session_start<$5::time AND session_end>$4::time LIMIT 1",[req.auth.schoolId,row.staff_user_id,row.start_date,session.start,session.end]);
+    if(intervalCollision.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'This half-day overlaps a previously approved session. Reconcile prescribed hours first.'});}
+   }
    if(chargeAccount!=='NONE'){
     const balance=await c.query('SELECT COALESCE(SUM(signed_days),0)::numeric AS days FROM staff_leave_credit_entries WHERE school_id=$1 AND staff_user_id=$2 AND credit_account=$3 AND status=\'VERIFIED\'',
      [req.auth.schoolId,row.staff_user_id,chargeAccount]);

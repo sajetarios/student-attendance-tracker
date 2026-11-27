@@ -1,5 +1,5 @@
 'use strict';
-const {dateOk,positiveDays}=require('./staff-leave-policy');
+const {dateOk,positiveDays,dateSpan}=require('./staff-leave-policy');
 const UUID=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 function parseRevision(body){
  const x=body||{},decision=String(x.decision||''),reference=String(x.approvalReference||'').trim(),reason=String(x.reason||'').trim(),documentId=String(x.documentId||''),approvedOn=String(x.approvedOn||''),approverName=String(x.approverName||'').trim(),approverPosition=String(x.approverPosition||'').trim();
@@ -15,7 +15,7 @@ function planRevision(row,input,ledger){
  if(row.status!=='APPROVED'||row.revision!==input.revision)return null;
  const oldDays=positiveDays(row.certified_working_days),account=row.credit_account;
  if(!oldDays||!['VSC','VL','SL','NONE'].includes(account))return null;
- if(input.decision==='SHORTEN'&&((row.leave_session||'FULL')!=='FULL'||input.endDate<row.start_date||input.endDate>=row.end_date||input.days>oldDays))return null;
+ if(input.decision==='SHORTEN'&&((row.leave_session||'FULL')!=='FULL'||input.endDate<row.start_date||input.endDate>=row.end_date||input.days>oldDays||input.days>dateSpan(row.start_date,input.endDate)))return null;
  const restore=milli(oldDays)-milli(input.days);
  if(restore<0)return null;
  // Restore only a known net charge from this very request. Ambiguous legacy
