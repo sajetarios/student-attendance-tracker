@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" data-protected-role="STAFF">
-<head><script src="/attendigo-install.js?v=5"></script><script src="/offline-account-guard.js?v=1"></script>
+<head><script src="/attendigo-install.js?v=5"></script><script src="/offline-account-guard.js?v=2"></script>
   <script src="/session-guard.js?v=7"></script>
   <script src="/flicker-diagnostics.js?v=1"></script>
   <meta charset="utf-8">
@@ -1436,7 +1436,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <section id="studentScannerCard" class="student-scanner-card" aria-label="Learner and teacher gate QR scanner">
                 <div class="student-scanner-heading"><div><h3 id="gateScannerHeading">Learner and teacher QR scanner</h3><p id="gateScannerDescription">Scan an authorized learner or teacher QR code to identify the person and record attendance.</p></div><button class="outline-button" type="button" id="studentScannerToggle">Open scanner</button></div>
-                <a id="gateOfflineCaptureLink" class="outline-button" href="/gate-offline.html" hidden style="margin:10px 0;display:inline-flex">Offline scanner · prepare or unlock</a>
+                <a id="gateOfflineCaptureLink" class="outline-button" href="/gate-offline.html" hidden style="margin:10px 0;display:inline-flex">Prepare / unlock offline scanner</a>
+                <p id="gateOfflineReadiness" class="scan-setup-description" role="status" hidden></p>
                 <div id="gateScanHelp" class="gate-scan-help" hidden>
                   <p><strong>Ready to scan:</strong> Open the camera, show the official QR badge, compare the registered photo, then select Verify &amp; Record. Official time comes from the server.</p>
                   <details class="gate-scan-advanced">
@@ -2552,7 +2553,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/student-name-format.js?v=2" defer></script>
   <script src="/teacher-scanner-schedule.js?v=1" defer></script>
   <script src="/gate-offline-review.js?v=1" defer></script>
-  <script src="/portal.js?v=251" defer></script>
+  <script src="/portal.js?v=252" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=10" defer></script>
   <script src="/staff-precise-location.js?v=1" defer></script>

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" data-theme="light">
-<head><script src="/offline-account-guard.js?v=1"></script><meta name="color-scheme" content="light"><style>html{color-scheme:only light}</style>
+<head><script src="/offline-account-guard.js?v=2"></script><meta name="color-scheme" content="light"><style>html{color-scheme:only light}</style>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f3f7fc">
@@ -74,13 +74,15 @@ const roleGuard=window.AttendigoOfflineAccount;
 function showOfflineRole(){
  const account=roleGuard?.current();
  for(const link of document.querySelectorAll('[data-offline-role]'))link.hidden=link.dataset.offlineRole!==account?.role;
- document.getElementById('offlineRoleMessage').textContent=account?'Only your verified account’s offline tool is available. Reconnect to switch accounts.':'No verified offline account is available here. Reconnect and sign in to prepare your tool.';
+ document.getElementById('offlineRoleMessage').textContent=account?(account.role==='GATE_KEEPER'?'Gatekeeper account verified until '+new Date(account.until).toLocaleString()+'. Open the scanner using your original device passphrase.':'Only your verified account’s offline tool is available. Reconnect to switch accounts.'):'Offline authorization is missing or expired. Reconnect and sign in in the same app or browser used to prepare the device. Gatekeepers: open and unlock the scanner while online to renew readiness. Do not clear browser data or reinstall.';
 }
 showOfflineRole();roleGuard?.watch(showOfflineRole);
+window.addEventListener('pageshow',event=>{if(event.persisted)void refreshOfflineRole();});
 async function refreshOfflineRole(){await roleGuard?.authorize();showOfflineRole();}
 // A device can report Wi-Fi connected while the server is unreachable. Recover
 // only the existing bounded installed stamp via authorize's fail-closed path.
 void refreshOfflineRole();
+window.addEventListener('offline',()=>{void refreshOfflineRole();});
 const retryButton = document.getElementById('retry');
 const heading = document.getElementById('connection-heading');
 const hint = document.getElementById('connection-hint');

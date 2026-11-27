@@ -46,7 +46,7 @@ test('direct offline pages fail closed and verify encrypted record owners',()=>{
  assert.match(sheet,/doc\.id\)\.startsWith\(a\.schoolId\+':'\+a\.accountId/);
  assert.match(gateScript,/authorize\('GATE_KEEPER'\)/);assert.match(gateScript,/matchesGate\(decoded\.scope\)/);
  assert.match(studentScript,/!allowed\(marker\)/);
- for(const p of ['offline-sheet.html','gate-offline.html','student-qr-offline.html','offline-welcome.html'])assert.match(read('public/'+p),/offline-account-guard\.js\?v=1/);
+ for(const p of ['offline-sheet.html','gate-offline.html','student-qr-offline.html','offline-welcome.html'])assert.match(read('public/'+p),/offline-account-guard\.js\?v=2/);
  const hub=read('public/offline-welcome.html');for(const role of ['STUDENT','TEACHER','GATE_KEEPER'])assert.ok(hub.includes('data-offline-role="'+role+'" hidden'));
- assert.match(read('public/sw.js'),/OFFLINE_REQUIRED = \[[\s\S]*?"\/offline-account-guard\.js\?v=1"/);
+ assert.match(read('public/sw.js'),/OFFLINE_REQUIRED = \[[\s\S]*?"\/offline-account-guard\.js\?v=2"/);
 });

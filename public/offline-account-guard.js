@@ -2,14 +2,14 @@
  * No credential/token is persisted here. Offline browser checks are not a substitute for server authentication. */
 (()=>{'use strict';
  const KEY='attendigo.offline.activeAccount.v1',TAB='attendigo.offline.verifiedTab.v1',STUDENT='attendigo.studentQrCapture';
- const INSTALLED='attendigo.offline.installedStaff.v1';
+ const INSTALLED='attendigo.offline.installedStaff.v1',GATE='attendigo.offline.preparedGate.v1';
  const installed=()=>navigator.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches===true;
  const staffOffline=role=>role==='TEACHER'||role==='GATE_KEEPER';
  const ROLES=new Set(['STUDENT','TEACHER','GATE_KEEPER']);
  const parse=(store,key)=>{try{return JSON.parse(store.getItem(key)||'null');}catch{return null;}};
  const identity=u=>u&&!u.mustChangePassword&&ROLES.has(u.role)&&u.schoolId&&(u.role==='STUDENT'?u.studentAccountId:u.userId)?{role:u.role,schoolId:String(u.schoolId),accountId:String(u.role==='STUDENT'?u.studentAccountId:u.userId)}:null;
  const same=(a,b)=>!!a&&!!b&&a.role===b.role&&a.schoolId===b.schoolId&&a.accountId===b.accountId;
- function clear(){try{sessionStorage.removeItem(TAB);sessionStorage.removeItem(STUDENT);localStorage.removeItem(KEY);localStorage.removeItem(INSTALLED);}catch{}}
+ function clear(){try{sessionStorage.removeItem(TAB);sessionStorage.removeItem(STUDENT);localStorage.removeItem(KEY);localStorage.removeItem(INSTALLED);localStorage.removeItem(GATE);}catch{}}
  function record(user,expiresAt){
   const id=identity(user);if(!id){clear();return null;}
   try{
@@ -20,6 +20,7 @@
    const epoch=same(old,id)&&old.until>Date.now()&&old.epoch?old.epoch:crypto.randomUUID();
    if(!same(prior,id))sessionStorage.removeItem(STUDENT);
    const stamp={...id,epoch,until};
+   if(!same(old,stamp)||old?.epoch!==stamp.epoch)localStorage.removeItem(GATE);
    localStorage.setItem(KEY,JSON.stringify(stamp));sessionStorage.setItem(TAB,JSON.stringify(stamp));
    // Only an online-verified installed teacher/gatekeeper session can establish
    // a resumable stamp. The actual encrypted data still requires its passphrase.
@@ -28,9 +29,36 @@
    return stamp;
   }catch{return null;}
  }
+ // Only the encrypted Gatekeeper scanner can opt in after a successful server
+ // preparation/renewal and durable profile write. No token or passphrase is saved.
+ function markGatePrepared(scope){
+  try{
+   const a=current('GATE_KEEPER'),end=Date.parse(scope?.validUntil);
+   if(navigator.onLine===false||!a||scope?.role!=='GATE_KEEPER'||a.schoolId!==String(scope.schoolId)||a.accountId!==String(scope.userId)||!Number.isFinite(end))return false;
+   const until=Math.min(a.until,end);
+   if(until<=Date.now())return false;
+   localStorage.setItem(GATE,JSON.stringify({...a,until}));return true;
+  }catch{return false;}
+ }
+ function clearGateResume(){try{localStorage.removeItem(GATE);}catch{}}
+ function gateResumeUntil(){
+  try{
+   const saved=parse(localStorage,GATE),active=parse(localStorage,KEY);
+   if(saved?.role!=='GATE_KEEPER'||!same(saved,active)||!saved.epoch||saved.epoch!==active.epoch||!Number.isFinite(saved.until)||!Number.isFinite(active.until)||saved.until<=Date.now()||active.until<=Date.now())return null;
+   return Math.min(saved.until,active.until);
+  }catch{return null;}
+ }
  function restoreInstalled(role){
   try{
-   if(!installed()||sessionStorage.getItem(TAB)!==null)return null;
+   const rawTab=sessionStorage.getItem(TAB),tab=parse(sessionStorage,TAB);
+   const gateUntil=(!role||role==='GATE_KEEPER')?gateResumeUntil():null;
+   // Safari may restore an older, expired tab after a different tab renewed
+   // the same dedicated scanner. Only replace an absent tab or a well-formed
+   // tab with the same account AND epoch; never override a different identity.
+   const prepared=parse(localStorage,GATE);
+   if(gateUntil&&(rawTab===null||(same(tab,prepared)&&tab.epoch===prepared.epoch))){const stamp={...prepared,until:gateUntil};sessionStorage.setItem(TAB,JSON.stringify(stamp));return stamp;}
+   if(rawTab!==null)return null;
+   if(!installed())return null;
    const saved=parse(localStorage,INSTALLED),active=parse(localStorage,KEY);
    if(!saved||!staffOffline(saved.role)||!same(saved,active)||!saved.epoch||saved.epoch!==active.epoch||
       !Number.isFinite(saved.until)||!Number.isFinite(active.until)||saved.until<=Date.now()||active.until<=Date.now()||
@@ -41,9 +69,9 @@
  }
  function current(role){
   try{
-   const a=parse(sessionStorage,TAB)||(navigator.onLine===false?restoreInstalled(role):null),b=parse(localStorage,KEY);
-   if(!same(a,b)||!a.epoch||a.epoch!==b.epoch||a.until<=Date.now()||b.until<=Date.now()||(role&&a.role!==role))return null;
-   return a;
+   const a=parse(sessionStorage,TAB),b=parse(localStorage,KEY);
+   if(same(a,b)&&a.epoch&&a.epoch===b.epoch&&Number.isFinite(a.until)&&Number.isFinite(b.until)&&a.until>Date.now()&&b.until>Date.now()&&(!role||a.role===role))return a;
+   return navigator.onLine===false?restoreInstalled(role):null;
   }catch{return null;}
  }
  function matches(role,schoolId,accountId){const a=current(role);return !!a&&a.schoolId===String(schoolId)&&a.accountId===String(accountId);}
@@ -61,5 +89,5 @@
   return current(role)||restoreInstalled(role);
  }
  function watch(fn){window.addEventListener('storage',e=>{if(e.key===KEY||e.key===null)fn();});window.addEventListener('pageshow',fn);document.addEventListener('visibilitychange',()=>{if(!document.hidden)fn();});}
- window.AttendigoOfflineAccount={record,clear,current,matches,requireRole,authorize,watch};
+ window.AttendigoOfflineAccount={record,clear,current,matches,requireRole,authorize,watch,markGatePrepared,clearGateResume,gateResumeUntil};
 })();

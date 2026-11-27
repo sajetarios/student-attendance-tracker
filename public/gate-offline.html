@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" data-theme="light">
-<head><script src="/offline-account-guard.js?v=1"></script><meta name="color-scheme" content="light"><style>html{color-scheme:only light}</style><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<head><script src="/offline-account-guard.js?v=2"></script><meta name="color-scheme" content="light"><style>html{color-scheme:only light}</style><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#f3f7fc"><title>Offline Gatekeeper · Attendigo</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/attendigo-favicon.png?v=2">
@@ -122,9 +122,9 @@ html[data-theme="dark"][data-offline-sheet="true"]{--asc-surface:#17243a;--asc-e
 <div id="network" class="status" role="status" aria-live="polite">Checking connectivity…</div>
 <section id="unlockPanel" hidden><h2>Unlock prepared scanner</h2>
 <p>Use the exact device passphrase created during setup. This is separate from your Attendigo sign-in password.</p><label for="pass">Original device passphrase</label><input id="pass" type="password" autocomplete="off" autocapitalize="none" spellcheck="false"><label class="row"><input id="showPass" type="checkbox"> Show passphrase</label>
-<div class="row"><button id="unlock">Unlock scanner</button><button id="lock" class="secondary" disabled>Lock</button></div><p id="unlockStatus" role="status" aria-live="polite"></p><small>Forgot your original passphrase? Encrypted pending scans cannot be recovered without it. Do not clear website data or reset the device; ask your administrator for help.</small></section>
+<div class="row"><button id="unlock">Unlock scanner</button><button id="lock" class="secondary" disabled>Lock</button></div><p id="unlockStatus" role="status" aria-live="polite"></p><small>Forgot your original passphrase? Encrypted pending scans cannot be recovered without it. Use Device recovery below only if you accept the consequences; do not clear the entire app.</small></section>
 <section id="preparePanel" hidden><h2>Prepare this device (online)</h2>
-<p>Sign in as an authorized Gatekeeper in this browser, open this page while connected, and create a device passphrase of at least 12 characters. Preparation expires after 12 hours; it cannot silently renew offline.</p>
+<p>Sign in as an authorized Gatekeeper in this browser, open this page while connected, and create a device passphrase of at least 12 characters. Preparation allows this dedicated device to reopen offline until the earlier of the device or verified account expiry (maximum 12 hours). Unlock while online at the start of a shift to refresh readiness. Always use the same app or browser.</p>
 <label for="newPass">Private device passphrase</label><input id="newPass" type="password" minlength="12" autocomplete="new-password" autocapitalize="none" spellcheck="false"><label for="confirmPass">Confirm device passphrase</label><input id="confirmPass" type="password" minlength="12" autocomplete="new-password" autocapitalize="none" spellcheck="false">
 <div class="row"><button id="prepare">Prepare this device</button><span id="prepareResult"></span></div>
 <small>Only one prepared Gatekeeper profile is kept per browser. Offline records remain encrypted; do not clear website data before synchronization.</small></section>
@@ -141,7 +141,10 @@ html[data-theme="dark"][data-offline-sheet="true"]{--asc-surface:#17243a;--asc-e
 <p id="syncResult" role="status" aria-live="polite">Nothing has been submitted yet.</p>
 <ul id="queue"></ul>
 <small>Discard permanently deletes only encrypted observations on this device after confirmation; it cannot delete synchronized or official attendance. Only server-confirmed acknowledgments remove encrypted local copies. If sync fails, keep the browser data and retry from this device. Leaving this page or closing the browser locks the session.</small></section>
+<section id="recoveryPanel" hidden><h2>Device recovery</h2><p>Manage this offline scanner only. Your Attendigo account, synchronized attendance, and official DTR records are unaffected.</p>
+<div class="row"><button id="changePassphrase" class="secondary" type="button">Change passphrase</button><button id="safeReset" class="secondary" type="button">Safe device reset</button><button id="forgotReset" class="danger" type="button">Forgot passphrase — reset device</button></div>
+<p id="recoveryStatus" role="status" aria-live="polite"></p><small>Internet and a verified Gatekeeper account are required. If you can unlock, synchronize pending observations before resetting. If you cannot unlock, a reset permanently discards unknown local observations.</small></section>
 </main>
 <script src="/vendor/html5-qrcode.min.js"></script>
-<script src="/gate-offline.js?v=6"></script>
+<script src="/gate-offline.js?v=10"></script>
 </body></html>
