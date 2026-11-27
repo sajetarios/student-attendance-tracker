@@ -174,3 +174,23 @@ test('device recovery requires a real online server identity and explicit reset;
  confirmed=null;await reset(true);assert.equal(deletes,0);
  confirmed='RESET';await reset(true);assert.equal(deletes,1);
 });
+
+test('original Manila school date survives next-day receipt and clock anomalies remain observations',()=>{
+ const {validStamp,manilaSchoolDate,clockWarning}=require('../gate-offline-routes');
+ assert.equal(manilaSchoolDate('2026-11-25T15:59:59Z'),'2026-11-25');
+ assert.equal(manilaSchoolDate('2026-11-25T16:00:00Z'),'2026-11-26');
+ assert.match(clockWarning('2026-11-25T15:59:59Z','2026-11-26T00:00:00Z'),/different Manila school date/);
+ assert.match(clockWarning('2026-11-26T01:00:00Z','2026-11-26T00:00:00Z'),/ahead of the server/);
+ assert.equal(validStamp(new Date().toISOString().replace(/Z$/,'')),false);
+});
+test('same event replay is acknowledged after serialization without creating a duplicate',async()=>{
+ const {createHash}=require('node:crypto');
+ const schoolId=randomUUID(),userId=randomUUID(),key=randomUUID(),code='TCH:'+randomUUID(),stamp=new Date().toISOString();
+ const existing={school_id:schoolId,gatekeeper_user_id:userId,subject_kind:'STAFF',badge_sha256:createHash('sha256').update(code.toLowerCase()).digest('hex'),captured_at_device:stamp};
+ const h=harness({existing});
+ const res=await h.call('POST','/api/gate/offline/reconcile',{events:[{eventId:key,qr:code,capturedAtDevice:stamp}]},{role:'GATE_KEEPER',type:'SCHOOL_USER',schoolId,userId});
+ assert.equal(res.statusCode,200);assert.equal(res.body.results[0].status,'ALREADY_RECEIVED');
+ const lock=h.queries.findIndex(q=>q.sql.includes('pg_advisory_xact_lock'));
+ assert.ok(lock>=0&&lock<h.queries.findIndex(q=>q.sql.startsWith('SELECT school_id,gatekeeper_user_id')));
+ assert.ok(!h.queries.some(q=>q.sql.includes('INSERT INTO offline_gate_observations')));
+});
