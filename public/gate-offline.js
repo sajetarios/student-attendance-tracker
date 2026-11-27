@@ -55,17 +55,18 @@ async function save(){
  if(!matchesGate(data?.scope))throw Error('Offline Gatekeeper account changed.');
  if(!data||!secretKey)throw Error('Unlock this device first.');
  const documentCopy=JSON.stringify(data),key=secretKey,documentSalt=salt,scope=data.scope;
+ const sessionData=data;
  writes=writes.catch(()=>{}).then(async()=>{
   const iv=crypto.getRandomValues(new Uint8Array(12));
   const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,encoder.encode(documentCopy));
   const next={id:KEY,salt:b64(documentSalt),iv:b64(iv),ciphertext:b64(new Uint8Array(cipher)),owner:{schoolId:String(scope.schoolId),userId:String(scope.userId)}};
-  await replaceDoc(storedDoc,next,()=>matchesGate(scope));storedDoc=next;
+  await replaceDoc(storedDoc,next,()=>matchesGate(scope)&&data===sessionData&&secretKey===key);storedDoc=next;
  });
  return writes;
 }
 function view(){
  const unlocked=!!data&&matchesGate(data.scope);
- $('recoveryPanel').hidden=!unlocked&&!storedDoc;
+ $('recoveryPanel').hidden=!guard?.current('GATE_KEEPER')||(!unlocked&&!storedDoc);
  $('changePassphrase').disabled=!unlocked||active||syncing||queueBusy||recoveryBusy;
  $('safeReset').disabled=!unlocked||active||syncing||queueBusy||recoveryBusy;
  $('forgotReset').hidden=unlocked;
@@ -81,8 +82,8 @@ function view(){
  const officialCount=data.events.length-practiceCount;
  $('pendingCount').textContent=officialCount+' pending local observation'+(officialCount===1?'':'s')+
    (practiceCount?' · '+practiceCount+' practice scan'+(practiceCount===1?'':'s'):'');
- $('clearPending').disabled=queueBusy||syncing||active||officialCount===0;
- $('clearPractice').disabled=queueBusy||syncing||active||practiceCount===0;
+ $('clearPending').disabled=recoveryBusy||queueBusy||syncing||active||officialCount===0;
+ $('clearPractice').disabled=recoveryBusy||queueBusy||syncing||active||practiceCount===0;
  $('sync').disabled=recoveryBusy||queueBusy||syncing||officialCount===0;
  $('queue').replaceChildren();
  for(const item of data.events.slice(-30).reverse()){
@@ -126,6 +127,7 @@ async function registerShell(){
  throw Error('Offline scanner files are not ready. Stay connected, reload Attendigo and try preparing again.');
 }
 async function prepare(){
+ if(recoveryBusy)throw Error('Device recovery in progress.');
  if(!await guard?.authorize('GATE_KEEPER'))throw Error('Verified Gatekeeper access required.');
  if(!online())throw Error('Online sign-in is required to prepare the scanner.');
  const pass=$('newPass').value;
@@ -153,6 +155,7 @@ async function prepare(){
  finally{$('prepare').disabled=false;}
 }
 async function renew(){
+ if(recoveryBusy)throw Error('Device recovery in progress.');
  if(!matchesGate(data?.scope))throw Error('Verified Gatekeeper account required.');
  if(!data||!online())throw Error('Unlock the prepared device and connect to the internet to renew.');
  const identity=await api('/api/gate/offline/prepare');
@@ -186,6 +189,7 @@ function resetPassVisibility(){
  $('pass').type='password';$('showPass').checked=false;
 }
 async function unlock(){
+ if(recoveryBusy)throw Error('Device recovery in progress.');
  if(!await guard?.authorize('GATE_KEEPER'))throw Error('Gatekeeper access is restricted. Reconnect to switch accounts.');
  let doc;
  try{doc=await readDoc();}catch{throw Error('Cannot read local device storage. Keep your browser data and reopen Attendigo.');}
@@ -385,7 +389,8 @@ async function refreshAccess(){
  try{
   const doc=await readDoc();
   if(!guard.current('GATE_KEEPER')){deny();return;}
-  storedDoc=doc;$('unlockPanel').hidden=!doc;$('preparePanel').hidden=!!doc;view();
+  if(data&&!sameDoc(doc,storedDoc)){await lock();$('unlockStatus').textContent='Device profile changed in another tab. Unlock again.';}
+  if(!data)storedDoc=doc;$('unlockPanel').hidden=!doc;$('preparePanel').hidden=!!doc;view();
   $('prepareResult').textContent=doc?'':'No prepared device on this browser. Connect to prepare it.';
  }catch(error){$('unlockStatus').textContent='Local storage unavailable. Do not clear browser data.';}
 }
