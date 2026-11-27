@@ -46,9 +46,10 @@ test('closures and approved Official Business block automatic absence determinat
  assert.equal(r.summary.pendingAbsentDays,1);
  assert.equal(r.summary.daysAbsent,0);
 });
-test('partial verified attendance shows a present day and an incomplete record warning',()=>{
+test('single verified punch shows evidence but not completed service',()=>{
  const r=month({records:[{date:'2026-02-02',slots:{PM_IN:'13:30'}}]});
- assert.equal(r.summary.daysPresent,1);
+ assert.equal(r.summary.daysPresent,0);
+ assert.equal(r.summary.verifiedEvidenceDays,1);
  assert.equal(r.summary.partialRecordDays,1);
  assert.equal(r.summary.tardyMinutes,30);
  assert.equal(r.summary.daysAbsent,0);
