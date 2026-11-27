@@ -236,3 +236,21 @@
  @media(max-width:540px) {#weeklyTimetableWorkspace.tt-teacher-refresh .tt-stat {padding:9px;gap:7px;}#weeklyTimetableWorkspace.tt-teacher-refresh .tt-stat-icon {flex-basis:30px;height:30px;font-size:18px;}#weeklyTimetableWorkspace.tt-teacher-refresh .weekly-timetable-toolbar>div:first-child {padding:12px;}#weeklyTimetableWorkspace.tt-teacher-refresh .weekly-timetable-controls label:first-of-type {flex:1 1 calc(100% - 112px);}}
  @media(max-width:340px) {#weeklyTimetableWorkspace.tt-teacher-refresh .tt-week-stats:not([hidden]) {grid-template-columns:minmax(0,1fr);}}
 }
+
+/* v473: comfortable teacher-only timetable typography and vector icons. */
+@media screen {
+ #weeklyTimetableWorkspace.tt-teacher-refresh .tt-stat-icon {flex:0 0 40px;height:40px;}
+ #weeklyTimetableWorkspace.tt-teacher-refresh .tt-stat-icon svg {width:23px;height:23px;display:block;flex-shrink:0;}
+ #weeklyTimetableWorkspace.tt-teacher-refresh .tt-stat>div>span {font-size:15px;line-height:1.45;}
+ html body.portal-page #schedulesView .tt-teacher-refresh #weeklyTimetableBoard.tt-grid-host .tt-grid {min-width:calc(104px + var(--tt-day-count,5) * 172px)!important;}
+ html body.portal-page #schedulesView .tt-teacher-refresh #weeklyTimetableBoard.tt-grid-host .tt-grid .tt-subject {min-height:108px!important;padding:12px 10px!important;gap:6px!important;justify-content:flex-start!important;}
+ html body.portal-page #schedulesView .tt-teacher-refresh #weeklyTimetableBoard.tt-grid-host .tt-grid .tt-subject-name {line-height:1.45!important;}
+ html body.portal-page #schedulesView .tt-teacher-refresh #weeklyTimetableBoard.tt-grid-host .tt-grid .tt-subject-section {font-size:16px!important;line-height:1.5!important;}
+ html body.portal-page #schedulesView .tt-teacher-refresh #weeklyTimetableBoard.tt-grid-host .tt-grid .tt-compact-relation {font-size:14px!important;line-height:1.45!important;padding:4px 6px!important;margin-top:2px!important;white-space:normal!important;max-width:100%!important;box-sizing:border-box!important;}
+ .tt-teacher-refresh #weeklyTimetableBoard .tt-subject .tt-adjustment-caption {margin-top:5px;padding-top:6px;line-height:1.45;}
+ .tt-teacher-refresh #weeklyTimetableBoard .tt-subject .tt-adjustment-time {line-height:1.45;}
+ @media(max-width:540px) {
+  #weeklyTimetableWorkspace.tt-teacher-refresh .tt-stat-icon {flex-basis:32px;height:32px;}
+  #weeklyTimetableWorkspace.tt-teacher-refresh .tt-stat-icon svg {width:20px;height:20px;}
+ }
+}
