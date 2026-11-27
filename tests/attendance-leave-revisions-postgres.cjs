@@ -117,6 +117,34 @@ async function main(){
   expect(await call(principal,leave+'/'+full+'/revision','POST',{...shorten,revision:after.revision,endDate:'2026-11-17',certifiedWorkingDays:2}),409);
   assert.equal(await balance(),7);
   assert.equal(Number((await pool.query("SELECT count(*) AS n FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND event_kind='DTR_SLOT'",[a.id,teacher.id])).rows[0].n),2);
+  const otherAdmin=await staff(b,'SCHOOL_ADMIN','otheradmin');
+  const archive='/api/staff-attendance/admin/form48/signed-archives';
+  const archivePath=archive+'?staffUserId='+teacher.id+'&month=2020-01';
+  const archiveHeaders={'Content-Type':'application/pdf','x-approval-reference':'SYNTHETIC-SIGNED-001','x-revision-reason':'Synthetic historical archive','x-signed-on':'2020-02-01','x-prior-version':'0','x-signed-evidence-verified':'true'};
+  const pdf=Buffer.from('%PDF-1.4\nSynthetic signed report fixture version one\n%%EOF');
+  expect(await call(teacher,archivePath,'POST',pdf,archiveHeaders),403);
+  expect(await call(otherAdmin,archivePath,'POST',pdf,archiveHeaders),404);
+  expect(await call(admin,archivePath,'POST',pdf,{...archiveHeaders,'x-signed-evidence-verified':'false'}),400);
+  const ownArchive=archive+'?staffUserId='+admin.id+'&month=2020-01';
+  expect(await call(admin,ownArchive,'POST',pdf,archiveHeaders),403);
+  const competing=await Promise.all([call(admin,archivePath,'POST',pdf,archiveHeaders),call(admin,archivePath,'POST',pdf,archiveHeaders)]);
+  assert.deepEqual(competing.map(x=>x.code).sort(),[201,409]);
+  const first=competing.find(x=>x.code===201).body.archive;
+  assert.equal(first.version,1);assert.equal(first.sha256,crypto.createHash('sha256').update(pdf).digest('hex'));
+  const pdf2=Buffer.from('%PDF-1.4\nSynthetic signed report fixture version two\n%%EOF');
+  const second=expect(await call(admin,archivePath,'POST',pdf2,{...archiveHeaders,'x-prior-version':'1','x-approval-reference':'SYNTHETIC-SIGNED-002'}),201).archive;
+  assert.equal(second.version,2);
+  expect(await call(admin,archivePath,'POST',pdf,{...archiveHeaders,'x-prior-version':'2'}),409);
+  const history=expect(await call(admin,archivePath),200).archives;
+  assert.deepEqual(history.map(x=>x.version),[2,1]);
+  const downloaded=await fetch(root+archive+'/'+first.archiveId,{headers:{Authorization:'Bearer '+admin.token}});
+  assert.equal(downloaded.status,200);assert.deepEqual(Buffer.from(await downloaded.arrayBuffer()),pdf);
+  assert.equal(downloaded.headers.get('content-disposition'),'attachment; filename="Form48-2020-01-v1.pdf"');
+  expect(await call(otherAdmin,archive+'/'+first.archiveId),404);
+  assert.deepEqual(expect(await call(otherAdmin,archivePath),200).archives,[]);
+  await assert.rejects(pool.query("UPDATE staff_form48_signed_archives SET revision_reason='unexpected change' WHERE archive_id=$1",[first.archiveId]),/append-only/);
+  await assert.rejects(pool.query('DELETE FROM staff_form48_signed_archives WHERE archive_id=$1',[first.archiveId]),/append-only/);
+  console.log('Signed Form 48 versions: authenticated archive, tenant isolation, replay protection, PDF integrity, and append-only history: PASS');
   console.log('Authenticated leave approval, half-day duty and DTR, cancellation race, shortening, tenant scope and immutable evidence: PASS');
  }finally{if(server)await new Promise(resolve=>server.close(resolve));await pool.end();}
 }
