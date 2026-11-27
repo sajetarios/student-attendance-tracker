@@ -111,7 +111,7 @@ test('device encryption, scope matching and cache controls preserve online permi
 test('gate offline preparation requires one complete release cache, not an obsolete cache',async()=>{
  const vm=require('node:vm'),js=read('public/gate-offline.js');
  const source=js.slice(js.indexOf('async function registerShell(){'),js.indexOf('async function prepare(){'));
- const files=new Map([['attendigo-v359-old',new Set(['/gate-offline.html'])],['attendigo-v474-current',new Set(['/gate-offline.html','/gate-offline.js?v=7','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'])]]);
+ const files=new Map([['attendigo-v359-old',new Set(['/gate-offline.html'])],['attendigo-v474-current',new Set(['/gate-offline.html','/gate-offline.js?v=8','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js','/app-dialog.js?v=1','/app-dialog.css?v=2','/offline-welcome.html'])]]);
  const caches={keys:async()=>[...files.keys()],match:async(asset,{cacheName})=>files.get(cacheName).has(asset)?{ok:true}:undefined};
  const registerShell=vm.runInNewContext(source+'\nregisterShell',{navigator:{serviceWorker:{register:async()=>{},ready:Promise.resolve()}},window:{caches},caches});
  await registerShell();
