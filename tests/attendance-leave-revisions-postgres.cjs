@@ -11,6 +11,7 @@ const {registerStaffLeaveRoutes}=require('../staff-leave-routes');
 const {registerStaffLeaveInboxRoutes}=require('../staff-leave-inbox-routes');
 const {registerForm48ReviewRoutes}=require('../form48-review-routes');
 const {partialDutySlotAllowed}=require('../staff-leave-sessions');
+const {registerGateOfflineRoutes,manilaSchoolDate}=require('../gate-offline-routes');
 async function main(){
  const url=new URL(process.env.DATABASE_URL||'postgres://invalid/invalid');
  assert.ok(['localhost','127.0.0.1'].includes(url.hostname)&&url.pathname==='/school_attendance_test',
@@ -42,7 +43,7 @@ async function main(){
   await pool.query("INSERT INTO staff_leave_credit_entries(school_id,staff_user_id,credit_account,entry_kind,signed_days,status,entered_by_user_id,verified_by_user_id,verified_at,approval_reference) VALUES($1,$2,'VSC','OPENING',10,'VERIFIED',$3,$3,NOW(),'TEST-OPENING')",[a.id,teacher.id,admin.id]);
   const app=express();app.use(express.json());
   const auth=createAuthMiddleware(pool);
-  registerStaffLeaveRoutes(app,pool,auth);registerStaffLeaveInboxRoutes(app,pool,auth);registerForm48ReviewRoutes(app,pool,auth);
+  registerStaffLeaveRoutes(app,pool,auth);registerStaffLeaveInboxRoutes(app,pool,auth);registerForm48ReviewRoutes(app,pool,auth);registerGateOfflineRoutes(app,pool,auth);
   server=await new Promise((resolve,reject)=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));s.on('error',reject);});
   const root='http://127.0.0.1:'+server.address().port;
   const leave='/api/staff-leave/requests';
@@ -118,6 +119,57 @@ async function main(){
   assert.equal(await balance(),7);
   assert.equal(Number((await pool.query("SELECT count(*) AS n FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND event_kind='DTR_SLOT'",[a.id,teacher.id])).rows[0].n),2);
   console.log('Authenticated leave approval, half-day duty and DTR, cancellation race, shortening, tenant scope and immutable evidence: PASS');
+  // Actual authenticated offline intake, duplicate reconciliation, queue review
+  // and Form 48 projection on a disposable PostgreSQL database, never a live school.
+  const keeper=await staff(a,'GATE_KEEPER','gatekeeper');
+  const otherKeeper=await staff(b,'GATE_KEEPER','otherkeeper');
+  const otherAdmin=await staff(b,'SCHOOL_ADMIN','otheradmin');
+  const badge=crypto.randomUUID();
+  await pool.query('UPDATE school_users SET teacher_qr_token=$3 WHERE school_id=$1 AND user_id=$2',[a.id,teacher.id,badge]);
+  const yesterday=new Date(Date.now()-86400000);
+  const localDay=manilaSchoolDate(yesterday);
+  const captured=new Date(localDay+'T08:00:00+08:00').toISOString();
+  const monthOfCapture=localDay.slice(0,7);
+  const analysisPath='/api/staff-attendance/admin/form48/analysis?staffUserId='+teacher.id+'&month='+monthOfCapture;
+  const baseline=expect(await call(admin,analysisPath),200);
+  const beforeDay=baseline.assessments.find(x=>x.date===localDay);
+  assert.equal(beforeDay.offlineReview,false);
+  const eventId=crypto.randomUUID(),event={eventId,qr:'TCH:'+badge,capturedAtDevice:captured};
+  const reconcile='/api/gate/offline/reconcile',review='/api/gate/offline/review';
+  expect(await call(teacher,reconcile,'POST',{events:[event]}),403);
+  const copies=await Promise.all([call(keeper,reconcile,'POST',{events:[event]}),call(keeper,reconcile,'POST',{events:[event]})]);
+  for(const copy of copies)expect(copy,200);
+  assert.deepEqual(copies.map(x=>x.body.results[0].status).sort(),['ALREADY_RECEIVED','REVIEW_REQUIRED']);
+  assert.ok(copies.every(x=>x.body.officialAttendance===false));
+  expect(await call(otherKeeper,reconcile,'POST',{events:[event]}),409);
+  expect(await call(keeper,reconcile,'POST',{events:[{...event,capturedAtDevice:new Date(Date.parse(captured)+60000).toISOString()}]}),409);
+  const observation=expect(await call(admin,review),200).items.find(x=>x.eventId===eventId);
+  assert.equal(observation.deviceSchoolDate,localDay);
+  assert.equal(observation.direction,'UNKNOWN');
+  assert.equal(observation.sameDateVerifiedSlots,beforeDay.verifiedCount);
+  assert.match(observation.clockWarning,/different Manila school date/);
+  assert.ok(!expect(await call(otherAdmin,review),200).items.some(x=>x.eventId===eventId));
+  const pending=expect(await call(admin,analysisPath),200);
+  const pendingDay=pending.assessments.find(x=>x.date===localDay);
+  assert.equal(pendingDay.offlineReview,true);
+  assert.equal(pendingDay.needsReview,true);
+  assert.equal(pendingDay.verifiedCount,beforeDay.verifiedCount);
+  for(const key of ['daysPresent','approvedLeaveDays','tardyMinutes','undertimeMinutes'])assert.equal(pending.summary[key],baseline.summary[key],key);
+  assert.equal(pending.summary.offlineReviewDays,baseline.summary.offlineReviewDays+1);
+  const outcome={status:'CLOSED_REVIEWED',note:'Synthetic logbook comparison; no new official punch'};
+  expect(await call(keeper,review+'/'+eventId,'POST',outcome),403);
+  expect(await call(otherAdmin,review+'/'+eventId,'POST',outcome),409);
+  expect(await call(admin,review+'/'+eventId,'POST',outcome),200);
+  expect(await call(admin,review+'/'+eventId,'POST',outcome),409);
+  const closed=expect(await call(admin,analysisPath),200);
+  assert.equal(closed.assessments.find(x=>x.date===localDay).offlineReview,false);
+  assert.equal(closed.assessments.find(x=>x.date===localDay).verifiedCount,beforeDay.verifiedCount);
+  assert.deepEqual(closed.summary,baseline.summary);
+  assert.equal(Number((await pool.query('SELECT count(*) AS n FROM offline_gate_observations WHERE school_id=$1 AND event_id=$2',[a.id,eventId])).rows[0].n),1);
+  assert.equal(Number((await pool.query("SELECT count(*) AS n FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND event_kind='DTR_SLOT'",[a.id,teacher.id])).rows[0].n),2);
+  assert.equal(await balance(),7);
+  console.log('Authenticated offline-to-Form48 simulation: next-day date, concurrent retries, altered replay, tenant and role isolation, review flag closure, unchanged punches and credits: PASS');
+
  }finally{if(server)await new Promise(resolve=>server.close(resolve));await pool.end();}
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});
