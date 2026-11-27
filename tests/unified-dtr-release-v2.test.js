@@ -90,3 +90,13 @@ test('pending sick leave with verified attendance is visible without granting le
  assert.equal(day.status,'SICK_LEAVE_PENDING');assert.equal(day.needsReview,true);
  assert.equal(summary.daysPresent,1);assert.equal(summary.approvedLeaveDays,0);
 });
+
+test('pending offline evidence blocks signature readiness without reassigning or fabricating punches',()=>{
+ const {day,summary}=run(hours,{offlineObservations:[{date}]});
+ assert.equal(day.status,'VERIFIED');assert.equal(day.offlineReview,true);
+ assert.equal(day.needsReview,true);assert.equal(day.verifiedCount,4);
+ assert.equal(summary.daysPresent,1);assert.equal(summary.offlineReviewDays,1);
+ const clean=run(hours);assert.equal(clean.day.offlineReview,false);
+ const next=run(hours,{offlineObservations:[{date:'2026-11-26'}]});
+ assert.equal(next.day.offlineReview,false);
+});
