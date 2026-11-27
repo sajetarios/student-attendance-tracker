@@ -28,11 +28,12 @@ function implausibleSlot(slots,hours){
  });
 }
 function isoDate(value){return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value+'T12:00:00Z'));}
-function summarizeForm48({records=[],month,today,settings=null,calendar=[],officialBusiness=[],leave=null,approvedLeaves=[],pendingSickLeaves=[],pendingOtherLeaves=[],scheduleAdjustments=[]}){
+function summarizeForm48({records=[],month,today,settings=null,calendar=[],officialBusiness=[],leave=null,approvedLeaves=[],pendingSickLeaves=[],pendingOtherLeaves=[],scheduleAdjustments=[],offlineObservations=[]}){
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month||''))throw Error('Invalid report month');
  const configured=Boolean(settings);
  const workdays=configured&&Array.isArray(settings.workdays)?settings.workdays:[];
  const daysByDate=new Map((records||[]).map(r=>[r.date,r]));
+ const offlineDates=new Set((offlineObservations||[]).map(x=>x.date));
  const exceptions=new Map((calendar||[]).map(x=>[x.date,x.type]));
  const reviews=configured&&settings.dayReviews&&typeof settings.dayReviews==='object'?settings.dayReviews:{};
  const calendarMonthDays=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).getUTCDate();
@@ -40,13 +41,15 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   (!workdays.some(day=>day!==6)||validHours(settings.regularHours))&&
   (!workdays.includes(6)||validHours(settings.saturdayHours));
  const summary={daysPresent:0,daysAbsent:0,excusedDays:0,pendingAbsentDays:0,
-  verifiedPartialDutyDays:0,verifiedEvidenceDays:0,timeConfigured,
+  verifiedPartialDutyDays:0,verifiedEvidenceDays:0,offlineReviewDays:0,timeConfigured,
   partialRecordDays:0,scheduledDays:0,approvedLeaveDays:0,timeAnomalyDays:0,tardyMinutes:timeConfigured?0:null,
   undertimeMinutes:timeConfigured?0:null,tardyDays:0,undertimeDays:0,
   incompleteTimingDays:0,unresolvedDays:0,configured,hasUnreviewed:false};
  const assessments=[];
  for(let day=1;day<=calendarMonthDays;day++){
   const date=month+'-'+String(day).padStart(2,'0');
+  const offlineReview=offlineDates.has(date);
+  if(offlineReview)summary.offlineReviewDays++;
   const record=daysByDate.get(date);
   const slots=record?.slots||{};
   const verifiedCount=SLOTS.filter(s=>isTime(slots[s])).length;
@@ -74,7 +77,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   // Do not choose an arbitrary memorandum or calculate against unknown shortened hours.
   if(scheduled&&date<=today&&(scheduleConflict||(exception==='SHORTENED_DAY'&&!adjustment))){
    summary.unresolvedDays++;summary.incompleteTimingDays++;summary.hasUnreviewed=true;
-   assessments.push({date,day,weekday,status:'SCHEDULE_REVIEW',scheduled,past,verifiedCount,verifiedSlots:SLOTS.filter(k=>isTime(slots[k])),lateMinutes:0,undertimeMinutes:0,needsReview:true,approvedOB:Boolean(approvedOB),approvedLeave:documentedLeave,leaveDay:Boolean(leaveDay||documentedLeave),sickLeavePending:Boolean(sickFilingPending),otherLeavePending:Boolean(otherFilingPending),calendarException:exception||null,review,temporaryMemoId:null,temporaryHours:null});
+   assessments.push({date,day,weekday,status:'SCHEDULE_REVIEW',offlineReview,scheduled,past,verifiedCount,verifiedSlots:SLOTS.filter(k=>isTime(slots[k])),lateMinutes:0,undertimeMinutes:0,needsReview:true,approvedOB:Boolean(approvedOB),approvedLeave:documentedLeave,leaveDay:Boolean(leaveDay||documentedLeave),sickLeavePending:Boolean(sickFilingPending),otherLeavePending:Boolean(otherFilingPending),calendarException:exception||null,review,temporaryMemoId:null,temporaryHours:null});
    continue;
   }
   if(dayLeaves.length&&dayLeaves.some(l=>['AM','PM'].includes(l.leaveSession))){
@@ -84,8 +87,9 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
    if(summary.tardyMinutes!==null)summary.tardyMinutes+=partial.lateMinutes;
    if(summary.undertimeMinutes!==null)summary.undertimeMinutes+=partial.undertimeMinutes;
    if(partial.lateMinutes)summary.tardyDays++;if(partial.undertimeMinutes)summary.undertimeDays++;
+   if(offlineReview)partial.needsReview=true;
    if(partial.needsReview){summary.unresolvedDays++;summary.hasUnreviewed=true;summary.incompleteTimingDays++;}
-   assessments.push({date,day,weekday,status:partial.status,scheduled,past,verifiedCount,verifiedSlots:SLOTS.filter(k=>isTime(slots[k])),
+   assessments.push({date,day,weekday,status:partial.status,offlineReview,scheduled,past,verifiedCount,verifiedSlots:SLOTS.filter(k=>isTime(slots[k])),
     lateMinutes:partial.lateMinutes,undertimeMinutes:partial.undertimeMinutes,needsReview:partial.needsReview,approvedOB:Boolean(approvedOB),
     authorizationConflict:partial.status==='OB_LEAVE_CONFLICT',leaveDay:true,approvedLeave:true,partialLeave:true,approvedLeaveDays:partial.leaveDays,
     sickLeavePending:Boolean(sickFilingPending),otherLeavePending:Boolean(otherFilingPending),calendarException:exception||null,review,temporaryMemoId:adjustment?.memoId||null,temporaryHours:adjustment?.hours||null});
@@ -172,8 +176,9 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
    summary.daysPresent+=completeSessions/2;
    if(completeSessions===1)summary.verifiedPartialDutyDays+=0.5;
   }
+  if(offlineReview)needsReview=true;
   if(needsReview){summary.unresolvedDays++;summary.hasUnreviewed=true;}
-  assessments.push({date,day,weekday,status,scheduled,past,verifiedCount,
+  assessments.push({date,day,weekday,status,offlineReview,scheduled,past,verifiedCount,
    lateMinutes,undertimeMinutes:earlyMinutes,needsReview,timeAnomaly:Boolean(anomalous),approvedOB:Boolean(approvedOB),authorizationConflict:Boolean(authorizationConflict),
    leaveDay:Boolean(leaveDay||documentedLeave),approvedLeave:Boolean(documentedLeave),
    sickLeavePending:Boolean(sickFilingPending),otherLeavePending:Boolean(otherFilingPending),calendarException:exception||null,review,
