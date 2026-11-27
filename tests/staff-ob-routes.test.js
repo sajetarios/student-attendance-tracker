@@ -232,3 +232,18 @@ test('verified OB extension flags newly overlapping classes atomically without r
  assert.equal((await rejected.call('POST',url,{decision:'REJECT',note:'Evidence incomplete'},{id})).code,200);
  assert.ok(!rejected.queries.some(x=>x.sql.includes('INSERT INTO staff_ob_class_coverage')));
 });
+
+test('future signed OB cancellation is Principal-only, scoped and preserves historical punches',async()=>{
+ const id='11111111-1111-4111-8111-111111111111',url='/api/staff-attendance/official-business/:id/cancel';
+ const body={signedCancellation:true,reference:'SYNTHETIC-CANCELLATION',reason:'Meeting cancelled before travel'};
+ assert.equal((await fixture('TEACHER').call('POST',url,body,{id})).code,403);
+ assert.equal((await fixture('DEPARTMENT_HEAD').call('POST',url,body,{id})).code,403);
+ const f=fixture('PRINCIPAL');
+ assert.equal((await f.call('POST',url,{...body,signedCancellation:false},{id})).code,400);
+ assert.equal((await f.call('POST',url,body,{id})).code,200);
+ const q=f.queries.find(x=>x.sql.includes("SET status='CANCELLED'")&&x.sql.includes('staff_official_business_requests'));
+ assert.ok(q);assert.deepEqual(q.params,['s1',id,'u1']);
+ assert.match(q.sql,/staff_user_id<>\$3/);assert.match(q.sql,/completion_status IS NULL/);assert.match(q.sql,/Asia\/Manila/);
+ assert.ok(f.queries.some(x=>x.params?.includes('STAFF_OB_AUTHORIZED_CANCELLED')));
+ assert.ok(!f.queries.some(x=>/DELETE FROM|UPDATE staff_attendance_events|SET ends_at/.test(x.sql)));
+});
