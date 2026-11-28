@@ -94,3 +94,64 @@
    grid-template-columns:minmax(0,1fr)!important;
  }
 }
+
+
+/* OB completion: isolate the native iOS date picker, align fields and keep
+   explanatory text and actions inside the dialog. No workflow changes. */
+@media screen {
+ .app-dialog-overlay .app-dialog-card:has(.app-dialog-input[name="date"]):has(.app-dialog-input[name="time"]):has(.app-dialog-input[name="reason"]):has(.app-dialog-input[name="reference"]) {
+   width:min(100%,620px);
+   min-inline-size:0;
+   max-inline-size:100%;
+ }
+ .app-dialog-overlay .app-dialog-card:has(.app-dialog-input[name="date"]):has(.app-dialog-input[name="time"]):has(.app-dialog-input[name="reason"]):has(.app-dialog-input[name="reference"]) .app-dialog-fields {
+   grid-template-columns:minmax(0,1fr);
+   align-items:start;
+   gap:14px 16px;
+   margin-top:18px;
+ }
+ .app-dialog-overlay .app-dialog-card:has(.app-dialog-input[name="date"]):has(.app-dialog-input[name="time"]):has(.app-dialog-input[name="reason"]):has(.app-dialog-input[name="reference"]) .app-dialog-field {
+   grid-template-columns:minmax(0,1fr);
+   align-content:start;
+   min-inline-size:0;
+   margin:0;
+   gap:6px;
+ }
+ .app-dialog-overlay .app-dialog-card:has(.app-dialog-input[name="date"]):has(.app-dialog-input[name="time"]):has(.app-dialog-input[name="reason"]):has(.app-dialog-input[name="reference"]) .app-dialog-input {
+   display:block;
+   box-sizing:border-box!important;
+   width:100%!important;
+   min-width:0!important;
+   max-width:100%!important;
+   min-inline-size:0!important;
+   max-inline-size:100%!important;
+ }
+ .app-dialog-overlay .app-dialog-card:has(.app-dialog-input[name="date"]):has(.app-dialog-input[name="time"]):has(.app-dialog-input[name="reason"]):has(.app-dialog-input[name="reference"]) input[type="date"]::-webkit-date-and-time-value {
+   min-width:0;
+   text-align:start;
+ }
+ .app-dialog-overlay .app-dialog-card:has(.app-dialog-input[name="date"]):has(.app-dialog-input[name="time"]):has(.app-dialog-input[name="reason"]):has(.app-dialog-input[name="reference"]) .app-dialog-input:focus-visible {
+   outline-offset:-2px;
+ }
+ .app-dialog-overlay .app-dialog-card:has(.app-dialog-input[name="date"]):has(.app-dialog-input[name="time"]):has(.app-dialog-input[name="reason"]):has(.app-dialog-input[name="reference"]) .app-dialog-actions {
+   gap:8px;
+   margin-top:16px;
+ }
+}
+@media screen and (min-width:761px) {
+ .app-dialog-overlay .app-dialog-card:has(.app-dialog-input[name="date"]):has(.app-dialog-input[name="time"]):has(.app-dialog-input[name="reason"]):has(.app-dialog-input[name="reference"]) .app-dialog-fields {
+   grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+ .app-dialog-overlay .app-dialog-card:has(.app-dialog-input[name="date"]):has(.app-dialog-input[name="time"]):has(.app-dialog-input[name="reason"]):has(.app-dialog-input[name="reference"]) .app-dialog-field:is(:has([name="reason"]),:has([name="reference"])) {
+   grid-column:1/-1;
+ }
+ .app-dialog-overlay .app-dialog-card:has(.app-dialog-input[name="date"]):has(.app-dialog-input[name="time"]):has(.app-dialog-input[name="reason"]):has(.app-dialog-input[name="reference"]) .app-dialog-field:is(:has([name="date"]),:has([name="time"])) .app-dialog-label {
+   min-block-size:3em;
+ }
+}
+@media screen and (max-width:560px) {
+ .app-dialog-overlay .app-dialog-card:has(.app-dialog-input[name="date"]):has(.app-dialog-input[name="time"]):has(.app-dialog-input[name="reason"]):has(.app-dialog-input[name="reference"]) .app-dialog-actions {
+   display:grid;
+   grid-template-columns:minmax(0,1fr);
+ }
+}
