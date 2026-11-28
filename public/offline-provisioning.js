@@ -58,7 +58,12 @@
    return {status:'READY',renewed:true};
   }catch(error){
    if(known&&authFailure(error?.status)){
-    try{await store().revoke(role,checkpoint);}catch{return {status:'STORAGE_UNAVAILABLE'};}
+    try{
+     // A 401 from the authenticated context/lease endpoints means the browser
+     // session is invalid. Guard against delayed responses after account switch.
+     if(error.status===401)await store().revokeAll(role,checkpoint);
+     else await store().revoke(role,checkpoint);
+    }catch{return {status:'STORAGE_UNAVAILABLE'};}
     return {status:'LOCKED'};
    }
    return {status:'UNAVAILABLE'};
