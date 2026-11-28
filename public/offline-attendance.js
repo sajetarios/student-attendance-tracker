@@ -117,7 +117,23 @@
     };
   }
   async function emit() {
-    const pending = await rows().catch(() => []);
+    let pending;
+    try { pending = await rows(); }
+    catch (error) {
+      const el = document.getElementById('attendigoOfflineStatus');
+      if (el) {
+        el.hidden = false;
+        el.style.display = '';
+        el.textContent = 'Device storage unavailable';
+        el.title = 'Attendance counts cannot be verified. Do not clear browser data.';
+      }
+      window.dispatchEvent(new CustomEvent('attendigo-offline-status', {
+        detail: { pending: null, waiting: null, needsReview: null, byType: null,
+          storageUnavailable: true, syncing, online: navigator.onLine,
+          lastConfirmedAt: null, syncMessage: 'Device storage unavailable. Attendance counts cannot be verified. Do not clear browser data.' }
+      }));
+      return;
+    }
     const review = pending.filter(record => record.status === 'REVIEW').length;
     const el = document.getElementById('attendigoOfflineStatus');
     if (el) {
