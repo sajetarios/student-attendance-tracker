@@ -214,18 +214,37 @@
     return { operationId, status: 'PENDING' };
   }
   let syncing = false;
+  // Web Locks coordinate all same-origin tabs/PWA windows where supported.
+  // Older browsers retain the existing per-window guard and server revalidation;
+  // this is not a substitute for authoritative server idempotency.
   async function sync() {
     const id = owner();
+    if (!id || !navigator.onLine || syncing) return { confirmations: {} };
+    if (typeof navigator.locks?.request !== 'function') return syncOwned(id);
+    try {
+      return await navigator.locks.request('attendigo-device-attendance-sync:' + id,
+        { mode: 'exclusive', ifAvailable: true }, lock => {
+          if (!lock || owner() !== id) return { confirmations: {} };
+          return syncOwned(id);
+        });
+    } catch {
+      // Never bypass a failed cross-window lock with an uncoordinated upload.
+      return { confirmations: {}, message: 'Device sync coordination unavailable. Queued records retained.' };
+    }
+  }
+  async function syncOwned(id) {
     const confirmations = {};
-    if (syncing || !navigator.onLine || !id) return { confirmations };
+    if (syncing || !navigator.onLine || !id || owner() !== id) return { confirmations };
     const ownerHeaders={'X-Attendigo-Queue-Owner':id};
     syncing = true;
     syncMessage='Checking school server…';
     try {
       await emit();
-      if(!(await rows()).length){syncMessage='No queued operations for this account.';return {confirmations};}
+      if(!(await rows(id)).length){syncMessage='No queued operations for this account.';return {confirmations};}
+      if (owner() !== id) return { confirmations };
       await verifiedOwner(id);
-      const records = (await rows())
+      if (owner() !== id) return { confirmations };
+      const records = (await rows(id))
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).slice(0, 50);
       for (const record of records) {
         // A conflict is a barrier: never sign off while an earlier correction
@@ -402,6 +421,7 @@
     }
     emit();
     window.addEventListener('online', sync);
+    window.addEventListener('pageshow', sync);
     document.addEventListener('attendigo:portal-ready', sync);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
     setInterval(sync, 30000);
