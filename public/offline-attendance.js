@@ -41,13 +41,13 @@
     } finally { db.close(); }
   }
   const put = record => transaction(STORE, 'readwrite', store => store.put(record));
+  const add = record => transaction(STORE, 'readwrite', store => store.add(record));
   const remove = id => transaction(STORE, 'readwrite', store => store.delete(id));
   const byId = id => transaction(STORE, 'readonly', (store, done) => {
     const req = store.get(id);
     req.onsuccess = () => done(req.result || null);
   });
-  async function rows() {
-    const id = owner();
+  async function rows(id = owner()) {
     if (!id) return [];
     return transaction(STORE, 'readonly', (store, done) => {
       const req = store.index('owner').getAll(id);
@@ -148,17 +148,19 @@
     if (!TYPES.has(type) || typeof operationId !== 'string' || !operationId || !payload || typeof payload !== 'object') {
       throw Error('Invalid attendance synchronization operation.');
     }
-    const current = await rows();
+    const current = await rows(id);
+    if (owner() !== id) throw Error('Offline account changed before queuing attendance.');
     // UUIDs are globally keyed in the legacy database. Never allow an event
     // from another logged-in school/account to be overwritten by a collision.
     const stored = await byId(operationId);
     if (stored && stored.owner !== id) throw Error('Operation ID belongs to another account.');
-    const found = current.find(row => row.id === operationId);
+    const found = stored;
     if (found) {
       const existing = await decrypt(found);
       if ((found.type || 'QR_SCAN') !== type || JSON.stringify(existing) !== JSON.stringify(payload)) {
         throw Error('Operation ID was reused for different attendance data.');
       }
+      if (owner() !== id) throw Error('Offline account changed before queuing attendance.');
       return { operationId, status: found.status };
     }
     // Avoid duplicate sign-off or manual batch operations when the user taps
@@ -168,14 +170,30 @@
       if (queued.type !== type || queued.status !== 'PENDING') continue;
       try {
         if (JSON.stringify(await decrypt(queued)) === JSON.stringify(payload)) {
+          if (owner() !== id) throw Error('Offline account changed before queuing attendance.');
           return { operationId: queued.id, status: queued.status };
         }
       } catch {} // Unreadable records remain on device for review.
     }
     const encrypted = await encrypt(id, payload);
     const createdAt = Math.max(Date.now(), ...current.map(r => Number(r.createdAt) || 0), 0) + 1;
-    await put({ id: operationId, owner: id, type, encrypted, status: 'PENDING',
-      attempts: 0, createdAt });
+    if (owner() !== id) throw Error('Offline account changed before queuing attendance.');
+    // IndexedDB's unique primary key is the final cross-tab collision guard.
+    // A put() here would overwrite a competing capture between the read and write.
+    try {
+      await add({ id: operationId, owner: id, type, encrypted, status: 'PENDING',
+        attempts: 0, createdAt });
+    } catch (error) {
+      const winner = await byId(operationId);
+      if (!winner) throw error;
+      if (winner.owner !== id) throw Error('Operation ID belongs to another account.');
+      if ((winner.type || 'QR_SCAN') !== type || JSON.stringify(await decrypt(winner)) !== JSON.stringify(payload)) {
+        throw Error('Operation ID was reused for different attendance data.');
+      }
+      if (owner() !== id) throw Error('Offline account changed before queuing attendance.');
+      return { operationId, status: winner.status };
+    }
+    if (owner() !== id) throw Error('Attendance retained for its original account. Sign in to that account to synchronize.');
     await emit();
     return { operationId, status: 'PENDING' };
   }
