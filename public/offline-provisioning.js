@@ -35,6 +35,7 @@
     await store().revoke(role,checkpoint);
     return {status:'ACCOUNT_CHANGED'};
    }
+   if(!await store().revokeOtherRoles(role,checkpoint))return {status:'LOCKED'};
    // Avoid new key generation/lease requests on every visibility event when
    // the same session, issuer and current valid grant already cover this role.
    const prior=await store().authorize(role);
