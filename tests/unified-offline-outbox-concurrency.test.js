@@ -15,6 +15,7 @@ function device() {
   const waiters = [];
   const statuses = [];
   let unavailable = false;
+  const network = { onLine: false };
   let reads = 0;
   const db = {
     close() {},
@@ -61,7 +62,7 @@ function device() {
     const window = { dispatchEvent(event) { statuses.push(event.detail); } };
     const context = vm.createContext({
       window, indexedDB, crypto: webcrypto, TextEncoder, TextDecoder,
-      navigator: { onLine: false },
+      navigator: network,
       sessionStorage: { getItem: () => JSON.stringify({ schoolId, userId, role: 'TEACHER' }) },
       document: { readyState: 'loading', addEventListener() {}, getElementById() { return null; } },
       CustomEvent: class { constructor(_type, init) { this.detail = init.detail; } }
@@ -69,7 +70,7 @@ function device() {
     vm.runInContext(source, context);
     return window.AttendigoOffline;
   }
-  return { tab, stores, statuses, failStorage() { unavailable = true; } };
+  return { tab, stores, statuses, failStorage() { unavailable = true; }, reconnect() { network.onLine = true; } };
 }
 const operation = status => ({
   operationId: 'shared-event-id', type: 'MANUAL_MARKS',
@@ -112,5 +113,13 @@ test('queue read failure rejects snapshot and does not erase captured records', 
   assert.equal(d.stores.events.size, 1);
   d.failStorage();
   await assert.rejects(a.snapshot(), /Storage unavailable/);
+  d.reconnect();
+  await a.sync();
+  const status = d.statuses.at(-1);
+  assert.equal(status.storageUnavailable, true);
+  assert.equal(status.pending, null);
+  assert.equal(status.waiting, null);
+  assert.equal(status.needsReview, null);
+  assert.match(status.syncMessage, /Do not clear browser data/);
   assert.equal(d.stores.events.size, 1);
 });
