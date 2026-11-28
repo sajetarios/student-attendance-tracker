@@ -165,5 +165,5 @@ test('Principal compact header preserves one control per action and accessible m
  assert.ok(css.includes('min-height:44px;height:44px'));
  assert.ok(css.includes('.shell > .topbar #signOut > span{display:none}'));
  assert.ok(css.includes('.shell > .topbar .universal-panel{position:fixed'));
- assert.ok(sw.includes('attendigo-v481-dtr-reconciliation'));
+ assert.match(sw,/const CACHE = "attendigo-v482-native-shell-foundation";/);
 });
