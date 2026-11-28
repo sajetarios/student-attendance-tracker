@@ -107,5 +107,15 @@
    return true;
   });
  }
- window.AttendigoOfflineAuthorizationStore=Object.freeze({checkpoint,begin,complete,authorize,revoke,revokeAll});
+ // Online account switching must not leave previous role grants accessible.
+ // The current role's checkpoint prevents a stale request revoking other roles
+ // after an intervening sign-out or replacement of that role.
+ async function revokeOtherRoles(role,expectedGeneration){
+  return transact(role,'readwrite',(row,store)=>{
+   if((row?.generation??null)!==expectedGeneration)return false;
+   for(const other of ROLES)if(other!==role)store.put({role:other,generation:generation(),state:'REVOKED'});
+   return true;
+  });
+ }
+ window.AttendigoOfflineAuthorizationStore=Object.freeze({checkpoint,begin,complete,authorize,revoke,revokeAll,revokeOtherRoles});
 })();
