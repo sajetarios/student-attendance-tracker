@@ -145,3 +145,16 @@ test('browser-wide sign-out revokes all seven roles and blocks delayed completio
   assert.equal(Object.hasOwn(d.records.get(p.role),'device'),false);
  }
 });
+
+test('authenticated role switching invalidates prior grants without permitting a stale role checkpoint to revoke the new role',async()=>{
+ const d=device(),a=d.reopen(),old=await prepare(a,d.inputs('TEACHER'));
+ assert.equal(await a.complete('TEACHER',old.attempt.generation,old.lease,old.context),true);
+ const prior=await a.checkpoint('TEACHER');
+ const input=d.inputs('GATE_KEEPER','guard-b');
+ const b=d.reopen(async(path,opts)=>({ok:true,json:async()=>path.endsWith('offline-context')?
+  offlineAuthorizationContext(input):issueOfflineLease({...input,...JSON.parse(opts.body)})}));
+ assert.equal((await b.provision(input.user)).status,'READY');
+ assert.equal(await a.authorize('TEACHER'),null);
+ assert.equal(await a.revokeOtherRoles('TEACHER',prior),false);
+ assert.equal((await b.authorize('GATE_KEEPER')).accountId,'guard-b');
+});
