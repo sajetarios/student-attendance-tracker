@@ -35,6 +35,7 @@
    if(c.v!==1||c.aud!=='attendigo:offline-dashboard:v1'||!ROLES.has(c.role)||
       c.kid!==await thumbprint(trustedIssuer)||c.device!==await thumbprint(device.publicKey)||
       c.role!==expected.role||c.schoolId!==String(expected.schoolId)||c.accountId!==String(expected.accountId)||
+      !Object.hasOwn(expected,'departmentId')||c.departmentId!==(expected.departmentId==null?null:String(expected.departmentId))||
       !expected.epoch||c.epoch!==expected.epoch||
       !Number.isSafeInteger(c.issuedAt)||!Number.isSafeInteger(c.expiresAt)||
       c.issuedAt>now||c.expiresAt<=now||c.expiresAt<=c.issuedAt||c.expiresAt-c.issuedAt>MAX_MS)return null;
