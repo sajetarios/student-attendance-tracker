@@ -99,5 +99,13 @@
    store.put({role,generation:generation(),state:'REVOKED'});return true;
   });
  }
- window.AttendigoOfflineAuthorizationStore=Object.freeze({checkpoint,begin,complete,authorize,revoke});
+ // The existing cookie session is browser-wide. Sign-out must invalidate every
+ // role slot in one IndexedDB transaction, including incomplete provisioning.
+ async function revokeAll(){
+  return transact('TEACHER','readwrite',(_row,store)=>{
+   for(const role of ROLES)store.put({role,generation:generation(),state:'REVOKED'});
+   return true;
+  });
+ }
+ window.AttendigoOfflineAuthorizationStore=Object.freeze({checkpoint,begin,complete,authorize,revoke,revokeAll});
 })();
