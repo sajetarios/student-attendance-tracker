@@ -126,3 +126,22 @@ test('session switch after issuance locks authorization rather than trusting the
  assert.equal((await api.provision(input.user)).status,'ACCOUNT_CHANGED');
  assert.equal(await api.authorize('TEACHER'),null);
 });
+
+test('browser-wide sign-out revokes all seven roles and blocks delayed completion without touching other stores',async()=>{
+ const d=device(),a=d.reopen(),b=d.reopen();
+ const roles=['SCHOOL_ADMIN','DEPARTMENT_HEAD','PRINCIPAL','TEACHER','GATE_KEEPER','PARENT','STUDENT'];
+ const pending=[];
+ for(const role of roles){
+  const p=await prepare(a,d.inputs(role));pending.push({role,...p});
+  if(role!=='STUDENT')assert.equal(await a.complete(role,p.attempt.generation,p.lease,p.context),true);
+ }
+ const checkpoints=await Promise.all(roles.map(role=>a.checkpoint(role)));
+ assert.equal(await b.revokeAll(),true);
+ for(const [i,p] of pending.entries()){
+  assert.equal(await a.authorize(p.role),null);
+  assert.equal(await a.complete(p.role,p.attempt.generation,p.lease,p.context),false);
+  await assert.rejects(a.begin(p.role,p.context,checkpoints[i]),/superseded/);
+  assert.equal(d.records.get(p.role).state,'REVOKED');
+  assert.equal(Object.hasOwn(d.records.get(p.role),'device'),false);
+ }
+});
