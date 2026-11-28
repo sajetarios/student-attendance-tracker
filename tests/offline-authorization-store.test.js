@@ -158,3 +158,27 @@ test('authenticated role switching invalidates prior grants without permitting a
  assert.equal(await a.revokeOtherRoles('TEACHER',prior),false);
  assert.equal((await b.authorize('GATE_KEEPER')).accountId,'guard-b');
 });
+
+test('authoritative 401 invalidates browser-wide grants without deleting attendance stores',async()=>{
+ const d=device(),api=d.reopen(async()=>({ok:false,status:401}));
+ for(const role of ['TEACHER','GATE_KEEPER']){
+  const p=await prepare(api,d.inputs(role));
+  assert.equal(await api.complete(role,p.attempt.generation,p.lease,p.context),true);
+ }
+ assert.equal((await api.provision(d.inputs().user)).status,'LOCKED');
+ assert.equal(await api.authorize('TEACHER'),null);
+ assert.equal(await api.authorize('GATE_KEEPER'),null);
+});
+test('a delayed 401 cannot revoke a newer authenticated role',async()=>{
+ const d=device(),input=d.inputs();let entered,release;
+ const wait=new Promise(r=>{entered=r;}),blocked=new Promise(r=>{release=r;});
+ const a=d.reopen(async()=>{entered();await blocked;return {ok:false,status:401};});
+ const pending=a.provision(input.user);
+ await wait;
+ const next=d.inputs('GATE_KEEPER','guard-b');
+ const b=d.reopen(async(path,opts)=>({ok:true,json:async()=>path.endsWith('offline-context')?
+  offlineAuthorizationContext(next):issueOfflineLease({...next,...JSON.parse(opts.body)})}));
+ assert.equal((await b.provision(next.user)).status,'READY');
+ release();await pending;
+ assert.equal((await b.authorize('GATE_KEEPER')).accountId,'guard-b');
+});
