@@ -24,12 +24,13 @@ function device(){
  const indexedDB={open(name){assert.equal(name,'attendigo-offline-authorization-v1');
   const req={result:db};setImmediate(()=>{if(unavailable){req.error=Error('Storage unavailable');req.onerror?.();}else req.onsuccess?.();});return req;
  }};
- function reopen(){
+ function reopen(fetch){
   const window={};
-  const context=vm.createContext({window,indexedDB,crypto:webcrypto,TextEncoder,TextDecoder,btoa,atob,Date:Clock});
+  const context=vm.createContext({window,indexedDB,crypto:webcrypto,TextEncoder,TextDecoder,btoa,atob,Date:Clock,fetch,AbortController,setTimeout,clearTimeout});
   vm.runInContext(source('offline-lease-crypto.js'),context);
   vm.runInContext(source('offline-authorization-store.js'),context);
-  return window.AttendigoOfflineAuthorizationStore;
+  vm.runInContext(source('offline-provisioning.js'),context);
+  return Object.assign({},window.AttendigoOfflineAuthorizationStore,{provision:window.AttendigoOfflineProvisioning.provision});
  }
  function inputs(role='TEACHER',account='account-a'){
   return {user:{role,schoolId:'school-a',userId:account,studentAccountId:account,departmentId:'dept-a'},
@@ -76,4 +77,52 @@ test('mismatched confirmation context, expired lease, clock rollback and unavail
  d.advance(60001);assert.equal(await a.authorize('TEACHER'),null);
  d.fail();assert.equal(await a.authorize('TEACHER'),null);
  await assert.rejects(a.revoke('TEACHER'),/Storage unavailable/);
+});
+
+test('generation checkpoints reject delayed provisioning after logout and stale revocation after account switch',async()=>{
+ const d=device(),a=d.reopen(),b=d.reopen(),context=offlineAuthorizationContext(d.inputs());
+ const checkpoint=await a.checkpoint('TEACHER');
+ await b.revoke('TEACHER');
+ await assert.rejects(a.begin('TEACHER',context,checkpoint),/superseded/);
+ const p=await prepare(b,d.inputs('TEACHER','account-b'));
+ assert.equal(await b.complete('TEACHER',p.attempt.generation,p.lease,p.context),true);
+ assert.equal(await a.revoke('TEACHER',checkpoint),false);
+ assert.equal((await a.authorize('TEACHER')).accountId,'account-b');
+});
+test('provisions every role through independent context, signed lease and fresh session confirmation',async()=>{
+ const d=device();
+ for(const role of ['SCHOOL_ADMIN','DEPARTMENT_HEAD','PRINCIPAL','TEACHER','GATE_KEEPER','PARENT','STUDENT']){
+  const input=d.inputs(role),calls=[];
+  const api=d.reopen(async(path,opts)=>{
+   calls.push(path);
+   assert.equal(opts.credentials,'same-origin');assert.equal(opts.cache,'no-store');
+   assert.equal(opts.redirect,'error');
+   const value=path.endsWith('offline-context')?offlineAuthorizationContext(input):
+    issueOfflineLease({...input,...JSON.parse(opts.body)});
+   return {ok:true,json:async()=>value};
+  });
+  const result=await api.provision(input.user);
+  assert.equal(result.status,'READY');assert.equal(result.renewed,true);
+  assert.deepEqual(calls,['/api/auth/offline-context','/api/auth/offline-lease','/api/auth/offline-context']);
+  assert.equal((await d.reopen().authorize(role)).accountId,'account-a');
+ }
+});
+test('logout during context request does not resurrect an offline authorization',async()=>{
+ const d=device(),input=d.inputs();let entered,release;
+ const wait=new Promise(r=>{entered=r;}),blocked=new Promise(r=>{release=r;});
+ const api=d.reopen(async()=>{entered();await blocked;return {ok:true,json:async()=>offlineAuthorizationContext(input)};});
+ const attempt=api.provision(input.user);
+ await wait;await d.reopen().revoke('TEACHER');release();
+ assert.notEqual((await attempt).status,'READY');
+ assert.equal(await api.authorize('TEACHER'),null);
+});
+test('session switch after issuance locks authorization rather than trusting the issued lease',async()=>{
+ const d=device(),input=d.inputs(),next=d.inputs('TEACHER','account-b');let contexts=0;
+ const api=d.reopen(async(path,opts)=>{
+  const value=path.endsWith('offline-context')?offlineAuthorizationContext(contexts++?next:input):
+   issueOfflineLease({...input,...JSON.parse(opts.body)});
+  return {ok:true,json:async()=>value};
+ });
+ assert.equal((await api.provision(input.user)).status,'ACCOUNT_CHANGED');
+ assert.equal(await api.authorize('TEACHER'),null);
 });
