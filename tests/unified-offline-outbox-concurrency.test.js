@@ -172,3 +172,42 @@ test('failed lock acquisition does not fall back to uncoordinated upload', async
   assert.equal(calls, 0);
   assert.equal(d.stores.events.size, 1);
 });
+
+test('temporary HTTP failures retain the original queued operation without conflict or immediate retry', async () => {
+  for (const status of [408, 425, 429, 500, 502, 503, 504]) {
+    let uploads = 0;
+    const d = device({ fetch: async (url) => {
+      if (url === '/api/auth/me') return { ok: true, json: async () => ({ user: { schoolId: 'school', userId: 'teacher', role: 'TEACHER' } }) };
+      assert.equal(url, '/api/manual-attendance/sync');
+      uploads++;
+      return { ok: false, status, headers: { get: () => '60' } };
+    }});
+    const a = d.tab('school', 'teacher'), b = d.tab('school', 'teacher');
+    await Promise.all([a.enqueueOperation(operation('PRESENT')), b.enqueueOperation(operation('PRESENT'))]);
+    const before = d.stores.events.get('shared-event-id');
+    d.reconnect();
+    const result = await a.sync();
+    assert.equal(Object.keys(result.confirmations).length, 0);
+    assert.match(result.message, /temporarily unavailable or busy/);
+    assert.equal(d.stores.events.get('shared-event-id'), before);
+    assert.equal((await a.snapshot()).waiting, 1);
+    assert.equal((await a.snapshot()).needsReview, 0);
+    const retry = await a.sync();
+    assert.match(retry.message, /safe automatic retry/);
+    assert.equal(uploads, 1);
+  }
+});
+
+test('authoritative revision conflicts remain pending review rather than transient retry', async () => {
+  const d = device({ fetch: async (url) => {
+    if (url === '/api/auth/me') return { ok: true, json: async () => ({ user: { schoolId: 'school', userId: 'teacher', role: 'TEACHER' } }) };
+    return { ok: false, status: 409, json: async () => ({ error: 'Revision conflict' }) };
+  }});
+  const a = d.tab('school', 'teacher'), b = d.tab('school', 'teacher');
+  await Promise.all([a.enqueueOperation(operation('PRESENT')), b.enqueueOperation(operation('PRESENT'))]);
+  d.reconnect();
+  await a.sync();
+  assert.equal((await a.snapshot()).needsReview, 1);
+  assert.equal((await a.inspect('shared-event-id')).reason, 'Revision conflict');
+  assert.equal(d.stores.events.size, 1);
+});
