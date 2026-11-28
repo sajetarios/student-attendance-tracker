@@ -157,7 +157,13 @@
     const waiting = Number(summary.waiting || 0);
     const cloudReview = isAdmin() ? Number(lastCloud?.needsReviewCount || 0) : 0;
     let label = 'Attendance sync', state = 'ready';
-    if (review) {
+    if (summary.storageUnavailable) {
+      label = 'Device storage unavailable';
+      state = 'warning';
+    } else if (summary.syncing) {
+      label = 'Syncing attendance';
+      state = 'waiting';
+    } else if (review) {
       label = review + (review === 1 ? ' record needs review' : ' records need review');
       state = 'review';
     } else if (cloudReview) {
@@ -204,6 +210,14 @@
       : '● Offline · Records stay encrypted on this device until connectivity returns';
     const metrics = $('ascMetrics');
     metrics.replaceChildren();
+    if (summary.storageUnavailable) {
+      $('ascQueueCount').textContent = 'Unavailable';
+      $('ascLastConfirmed').textContent = 'Device attendance counts cannot be verified.';
+      $('ascSyncNow').disabled = true;
+      $('ascFeedback').textContent = 'Device storage unavailable. Do not clear browser data. Reopen Attendigo or reconnect and retry.';
+      $('ascQueueList').replaceChildren(element('p', 'asc-empty', 'Unable to read stored attendance. No synchronization result is confirmed.'));
+      return;
+    }
     const items = [
       ['Saved on device', summary.pending, 'local'],
       ['Waiting to sync', summary.waiting, 'waiting'],
@@ -261,7 +275,9 @@
         if (isAdmin() && includeCloud) await loadCloud();
       }
     } catch (error) {
-      if (dialog && dialog.open) $('ascFeedback').textContent = 'Unable to read device queue: ' + error.message;
+      const unavailable = { storageUnavailable: true, pending: null, waiting: null, needsReview: null };
+      updateSummary(unavailable);
+      if (dialog && dialog.open) await renderSummary(unavailable);
     } finally { refreshing = false; }
   }
   function refreshIfOpen() { if (dialog && dialog.open) void refresh(true); else void refresh(false); }
