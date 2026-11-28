@@ -60,7 +60,8 @@ function verifyOfflineLease({lease,trustedIssuer,expected,devicePublicKey,now=Da
     const c=JSON.parse(Buffer.from(lease.payload,'base64url').toString('utf8'));
     if (c.v!==1 || c.aud!==audience || !ROLES.has(c.role) || c.kid!==thumbprint(issuer) ||
         c.device!==thumbprint(device) || c.role!==expected.role || c.schoolId!==String(expected.schoolId) ||
-        c.accountId!==String(expected.accountId) || !expected.epoch || c.epoch!==expected.epoch ||
+        c.accountId!==String(expected.accountId) || !Object.hasOwn(expected,'departmentId') ||
+        c.departmentId!==(expected.departmentId==null?null:String(expected.departmentId)) || !expected.epoch || c.epoch!==expected.epoch ||
         !Number.isSafeInteger(c.issuedAt) || !Number.isSafeInteger(c.expiresAt) || c.issuedAt>now ||
         c.expiresAt<=now || c.expiresAt<=c.issuedAt || c.expiresAt-c.issuedAt>MAX_MS) return null;
     return c;
