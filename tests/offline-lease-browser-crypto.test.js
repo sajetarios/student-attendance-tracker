@@ -18,7 +18,7 @@ test('browser Web Crypto verifies Node issuer signatures and proves device key p
  await assert.rejects(webcrypto.subtle.exportKey('jwk',device.privateKey));
  const lease=issueOfflineLease({user:{role:'GATE_KEEPER',schoolId:'school',userId:'guard'},sessionId:'session',expiresAt:new Date(now+MAX_MS).toISOString(),devicePublicKey:device.publicKey,privateKey:signer.privateKey.export({format:'der',type:'pkcs8'}).toString('base64'),now});
  const claim=JSON.parse(Buffer.from(lease.payload,'base64url').toString());
- const args={lease,trustedIssuer:issuer,expected:{role:claim.role,schoolId:claim.schoolId,accountId:claim.accountId,epoch:claim.epoch},device,now,lastObservedAt:now};
+ const args={lease,trustedIssuer:issuer,expected:{role:claim.role,schoolId:claim.schoolId,accountId:claim.accountId,departmentId:claim.departmentId,epoch:claim.epoch},device,now,lastObservedAt:now};
  assert.equal((await browser.verifyLease(args))?.accountId,'guard');
  assert.equal(await browser.verifyLease({...args,device:{...device,privateKey:other.privateKey}}),null);
  assert.equal(await browser.verifyLease({...args,device:other}),null);
@@ -26,6 +26,9 @@ test('browser Web Crypto verifies Node issuer signatures and proves device key p
  assert.equal(await browser.verifyLease({...args,lastObservedAt:now+1}),null);
  assert.equal(await browser.verifyLease({...args,expected:{...args.expected,epoch:'revoked'}}),null);
  assert.equal(await browser.verifyLease({...args,expected:{...args.expected,role:'TEACHER'}}),null);
+ assert.equal(await browser.verifyLease({...args,expected:{...args.expected,departmentId:'other-department'}}),null);
+ const {departmentId,...missing}=args.expected;
+ assert.equal(await browser.verifyLease({...args,expected:missing}),null);
  assert.equal(await browser.verifyLease({...args,trustedIssuer:other.publicKey}),null);
  assert.equal(await browser.verifyLease({...args,lease:{...lease,signature:'invalid'}}),null);
 });
