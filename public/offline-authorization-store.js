@@ -35,13 +35,18 @@
   Object.hasOwn(s,'departmentId')&&(s.departmentId===null||typeof s.departmentId==='string');
  // Call only after a successful authenticated context fetch. A new attempt
  // locks the previous role authorization; incomplete provisioning fails closed.
- async function begin(role,context){
+ async function checkpoint(role){const row=await read(role);return row?.generation??null;}
+ async function begin(role,context,expectedGeneration){
   roleKey(role);
   if(!validScope(role,context?.expected)||!Number.isSafeInteger(context.serverTime)||
      !Number.isSafeInteger(context.expiresAt)||context.expiresAt<=context.serverTime||
      !context.trustedIssuer||!context.kid)throw Error('Invalid online authorization context');
   const id=generation();
-  await transact(role,'readwrite',(_old,store)=>{store.put({role,generation:id,state:'PROVISIONING'});});
+  const started=await transact(role,'readwrite',(old,store)=>{
+   if(expectedGeneration!==undefined&&(old?.generation??null)!==expectedGeneration)return false;
+   store.put({role,generation:id,state:'PROVISIONING'});return true;
+  });
+  if(!started)throw Error('Offline provisioning superseded');
   const device=await window.AttendigoOfflineLeaseCrypto.createDeviceKey();
   const ok=await transact(role,'readwrite',(row,store)=>{
    if(row?.generation!==id||row.state!=='PROVISIONING')return false;
@@ -86,12 +91,13 @@
    });
   }catch{return null;}
  }
- async function revoke(role){
+ async function revoke(role,expectedGeneration){
   // Never delete any attendance queue or legacy profile. Tombstone prevents
   // in-flight provisioning from restoring an authorization after sign-out.
-  return transact(role,'readwrite',(_row,store)=>{
+  return transact(role,'readwrite',(row,store)=>{
+   if(expectedGeneration!==undefined&&(row?.generation??null)!==expectedGeneration)return false;
    store.put({role,generation:generation(),state:'REVOKED'});return true;
   });
  }
- window.AttendigoOfflineAuthorizationStore=Object.freeze({begin,complete,authorize,revoke});
+ window.AttendigoOfflineAuthorizationStore=Object.freeze({checkpoint,begin,complete,authorize,revoke});
 })();
