@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {generateKeyPairSync}=require('node:crypto');
-const {issueOfflineLease,verifyOfflineLease,MAX_MS}=require('../offline-authorization-lease');
+const {offlineAuthorizationContext,issueOfflineLease,verifyOfflineLease,MAX_MS}=require('../offline-authorization-lease');
 const pair=()=>generateKeyPairSync('ec',{namedCurve:'prime256v1'});
 const signer=pair(), device=pair(), other=pair();
 const issuer=signer.publicKey.export({format:'jwk'});
@@ -54,4 +54,25 @@ test('requires explicit current department scope, including for school-wide acco
  const {departmentId,...missing}=ctx.expected;
  assert.equal(verifyOfflineLease({...ctx,expected:missing}),null);
  assert.equal(verifyOfflineLease({...ctx,expected:{...ctx.expected,departmentId:'dep-a'}}),null);
+});
+
+test('independent authenticated context binds every role, issuer and session epoch before lease verification',()=>{
+ for(const role of ['SCHOOL_ADMIN','DEPARTMENT_HEAD','PRINCIPAL','TEACHER','GATE_KEEPER','PARENT','STUDENT']){
+  const input={...base,user:{...base.user,role,studentAccountId:'student-a'}};
+  const trust=offlineAuthorizationContext(input);
+  const lease=issueOfflineLease(input);
+  assert.deepEqual(Object.keys(trust).sort(),['expected','expiresAt','kid','serverTime','trustedIssuer']);
+  assert.equal(trust.expected.role,role);
+  assert.equal(trust.expected.accountId,role==='STUDENT'?'student-a':'teacher-a');
+  assert.equal(trust.trustedIssuer.d,undefined);
+  assert.equal(trust.kid,getClaims(lease).kid);
+  assert.ok(verifyOfflineLease({lease,...trust,devicePublicKey:key,now,lastObservedAt:now}));
+  const switched=offlineAuthorizationContext({...input,sessionId:'different-session'});
+  assert.equal(verifyOfflineLease({lease,...switched,devicePublicKey:key,now,lastObservedAt:now}),null);
+ }
+});
+test('offline context fails closed for ineligible users, expiry and missing issuer',()=>{
+ for(const [change,status] of [[{privateKey:''},503],[{expiresAt:new Date(now).toISOString()},401],[{user:{...base.user,mustChangePassword:true}},403],[{user:{...base.user,role:'SUPER_ADMIN'}},403]]) {
+  assert.throws(()=>offlineAuthorizationContext({...base,...change}),e=>e.status===status);
+ }
 });

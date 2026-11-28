@@ -28,25 +28,36 @@ function thumbprint(key) {
   const {crv,kty,x,y}=key.export({format:'jwk'});
   return createHash('sha256').update(JSON.stringify({crv,kty,x,y})).digest('base64url');
 }
-function issueOfflineLease({user,sessionId,expiresAt,devicePublicKey,privateKey,now=Date.now()}) {
+// Obtain the expected scope and issuer independently over the authenticated,
+ // network-only context endpoint, not from the untrusted lease payload.
+function offlineAuthorizationContext({user,sessionId,expiresAt,privateKey,now=Date.now()}) {
   const accountId=user?.role==='STUDENT'?user?.studentAccountId:user?.userId;
   if (!user || !ROLES.has(user.role) || user.mustChangePassword || !user.schoolId || !accountId || !sessionId)
     throw new LeaseError(403,'This account is not eligible for offline authorization.');
   const sessionEnd=Date.parse(expiresAt);
   if (!Number.isSafeInteger(now) || !Number.isFinite(sessionEnd) || sessionEnd<=now)
     throw new LeaseError(401,'The online session is expired.');
-  const device=deviceKey(devicePublicKey);
   const issuer=signingKey(privateKey);
   const publicKey=createPublicKey(issuer);
+  return {
+    expected:{role:user.role,schoolId:String(user.schoolId),accountId:String(accountId),
+      departmentId:user.departmentId==null?null:String(user.departmentId),
+      epoch:createHash('sha256').update('attendigo-offline-session-v1:'+String(sessionId)).digest('base64url')},
+    trustedIssuer:publicKey.export({format:'jwk'}),kid:thumbprint(publicKey),
+    serverTime:now,expiresAt:Math.min(now+MAX_MS,sessionEnd)
+  };
+}
+function issueOfflineLease({user,sessionId,expiresAt,devicePublicKey,privateKey,now=Date.now()}) {
+  const context=offlineAuthorizationContext({user,sessionId,expiresAt,privateKey,now});
+  const device=deviceKey(devicePublicKey);
+  const issuer=signingKey(privateKey);
   const claims={
-    v:1,aud:audience,role:user.role,schoolId:String(user.schoolId),accountId:String(accountId),
-    departmentId:user.departmentId==null?null:String(user.departmentId),
-    device:thumbprint(device),epoch:createHash('sha256').update('attendigo-offline-session-v1:'+String(sessionId)).digest('base64url'),
-    issuedAt:now,expiresAt:Math.min(now+MAX_MS,sessionEnd),kid:thumbprint(publicKey)
+    v:1,aud:audience,...context.expected,device:thumbprint(device),
+    issuedAt:context.serverTime,expiresAt:context.expiresAt,kid:context.kid
   };
   const payload=Buffer.from(JSON.stringify(claims)).toString('base64url');
   const signature=sign('sha256',Buffer.from(payload),{key:issuer,dsaEncoding:'ieee-p1363'}).toString('base64url');
-  return {payload,signature,issuerPublicKey:publicKey.export({format:'jwk'})};
+  return {payload,signature,issuerPublicKey:context.trustedIssuer};
 }
 // Testable verification primitive. Callers must supply a previously trusted issuer,
 // the expected local account and device key, and a durable last-observed time.
@@ -67,4 +78,4 @@ function verifyOfflineLease({lease,trustedIssuer,expected,devicePublicKey,now=Da
     return c;
   } catch { return null; }
 }
-module.exports={issueOfflineLease,verifyOfflineLease,LeaseError,MAX_MS};
+module.exports={offlineAuthorizationContext,issueOfflineLease,verifyOfflineLease,LeaseError,MAX_MS};

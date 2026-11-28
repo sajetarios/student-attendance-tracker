@@ -1,7 +1,7 @@
 const { hashPassword, verifyPassword, createOpaqueToken, hashToken } = require('./auth-security');
 const { createIpRateLimiter } = require('./request-limiter');
 const { canonicalStudentLoginUsername } = require('./generated-record-ids');
-const { issueOfflineLease, LeaseError } = require('./offline-authorization-lease');
+const { issueOfflineLease, offlineAuthorizationContext, LeaseError } = require('./offline-authorization-lease');
 
 function validString(value, max = 160) {
   return typeof value === 'string' && value.trim().length > 0 && value.trim().length <= max;
@@ -412,11 +412,15 @@ function registerAuthRoutes(app, pool) {
 
   async function currentSession(req, res) {
     const issuingLease = req.method === 'POST';
+    const requestingContext = req.path === '/api/auth/offline-context';
+    if (issuingLease || requestingContext) res.setHeader('Cache-Control','no-store, private');
     function respond(user, expiresAt, sessionId) {
-      if (!issuingLease) return res.json({ expiresAt, user });
+      if (!issuingLease && !requestingContext) return res.json({ expiresAt, user });
       res.setHeader('Cache-Control','no-store, private');
       try {
-        const lease=issueOfflineLease({user,sessionId,expiresAt,devicePublicKey:req.body?.devicePublicKey,privateKey:process.env.ATTENDIGO_OFFLINE_SIGNING_KEY});
+        const input={user,sessionId,expiresAt,privateKey:process.env.ATTENDIGO_OFFLINE_SIGNING_KEY};
+        if (requestingContext) return res.json(offlineAuthorizationContext(input));
+        const lease=issueOfflineLease({...input,devicePublicKey:req.body?.devicePublicKey});
         return res.json(lease);
       } catch (error) {
         if (error instanceof LeaseError) return res.status(error.status).json({error:error.message});
@@ -483,7 +487,7 @@ function registerAuthRoutes(app, pool) {
       const row = result.rows[0];
       await pool.query('UPDATE user_sessions SET last_seen_at=NOW() WHERE session_id=$1', [row.session_id]);
       if (row.principal_type === 'PLATFORM') {
-        if (issuingLease) return res.status(403).json({error:'Platform accounts are not eligible for offline authorization.'});
+        if (issuingLease || requestingContext) return res.status(403).json({error:'Platform accounts are not eligible for offline authorization.'});
         return res.json({ user: {
           userId: row.platform_user_id,
           username: row.platform_username,
@@ -512,6 +516,7 @@ function registerAuthRoutes(app, pool) {
   }
   app.get('/api/auth/me', currentSession);
   app.post('/api/auth/offline-lease', currentSession);
+  app.get('/api/auth/offline-context', currentSession);
 
   app.post('/api/auth/logout', async (req, res) => {
     const tokens = [...new Set([bearerToken(req),staffCookieToken(req),cookieToken(req)].filter(Boolean))];
