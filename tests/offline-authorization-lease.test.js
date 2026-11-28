@@ -10,7 +10,7 @@ const key=device.publicKey.export({format:'jwk'});
 const now=Date.parse('2026-11-28T00:00:00Z');
 const base={user:{role:'TEACHER',schoolId:'school-a',userId:'teacher-a',departmentId:'dep-a'},sessionId:'session-a',expiresAt:new Date(now+2*MAX_MS).toISOString(),devicePublicKey:key,privateKey:signer.privateKey.export({format:'der',type:'pkcs8'}).toString('base64'),now};
 const getClaims=lease=>JSON.parse(Buffer.from(lease.payload,'base64url').toString());
-function context(lease){const c=getClaims(lease);return {lease,trustedIssuer:issuer,expected:{role:c.role,schoolId:c.schoolId,accountId:c.accountId,epoch:c.epoch},devicePublicKey:key,now,lastObservedAt:now};}
+function context(lease){const c=getClaims(lease);return {lease,trustedIssuer:issuer,expected:{role:c.role,schoolId:c.schoolId,accountId:c.accountId,departmentId:c.departmentId,epoch:c.epoch},devicePublicKey:key,now,lastObservedAt:now};}
 test('issues a signed lease for every eligible school role, never a bearer token',()=>{
  for(const role of ['SCHOOL_ADMIN','DEPARTMENT_HEAD','PRINCIPAL','TEACHER','GATE_KEEPER','PARENT','STUDENT']){
   const lease=issueOfflineLease({...base,user:{...base.user,role,studentAccountId:'student-a'}});
@@ -30,7 +30,7 @@ test('rejects tampering, mismatched identity, epoch, device, untrusted issuer an
  const lease=issueOfflineLease(base), ctx=context(lease);
  const altered={...getClaims(lease),role:'SCHOOL_ADMIN'};
  assert.equal(verifyOfflineLease({...ctx,lease:{...lease,payload:Buffer.from(JSON.stringify(altered)).toString('base64url')}}),null);
- for(const change of [{role:'PRINCIPAL'},{schoolId:'school-b'},{accountId:'teacher-b'},{epoch:'revoked'}]){
+ for(const change of [{role:'PRINCIPAL'},{schoolId:'school-b'},{accountId:'teacher-b'},{epoch:'revoked'},{departmentId:'dep-b'},{departmentId:null}]){
   assert.equal(verifyOfflineLease({...ctx,expected:{...ctx.expected,...change}}),null);
  }
  assert.equal(verifyOfflineLease({...ctx,devicePublicKey:other.publicKey.export({format:'jwk'})}),null);
@@ -46,4 +46,12 @@ test('fails closed for missing signing configuration, expired session, invalid d
   [{user:{...base.user,role:'SUPER_ADMIN'}},403],[{user:{...base.user,mustChangePassword:true}},403],
   [{user:{...base.user,schoolId:null}},403],[{sessionId:null},403]
  ]) assert.throws(()=>issueOfflineLease({...base,...input}),e=>e.status===status);
+});
+
+test('requires explicit current department scope, including for school-wide accounts',()=>{
+ const lease=issueOfflineLease({...base,user:{...base.user,role:'SCHOOL_ADMIN',departmentId:null}}),ctx=context(lease);
+ assert.ok(verifyOfflineLease(ctx));
+ const {departmentId,...missing}=ctx.expected;
+ assert.equal(verifyOfflineLease({...ctx,expected:missing}),null);
+ assert.equal(verifyOfflineLease({...ctx,expected:{...ctx.expected,departmentId:'dep-a'}}),null);
 });
