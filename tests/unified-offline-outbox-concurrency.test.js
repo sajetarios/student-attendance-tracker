@@ -13,6 +13,8 @@ const source = fs.readFileSync(path.join(__dirname, '..', 'public', 'offline-att
 function device() {
   const stores = { events: new Map(), keys: new Map() };
   const waiters = [];
+  const statuses = [];
+  let unavailable = false;
   let reads = 0;
   const db = {
     close() {},
@@ -52,22 +54,22 @@ function device() {
   };
   const indexedDB = { open() {
     const req = { result: db };
-    setImmediate(() => req.onsuccess?.());
+    setImmediate(() => { if (unavailable) { req.error = Error('Storage unavailable'); req.onerror?.(); } else req.onsuccess?.(); });
     return req;
   }};
   function tab(schoolId, userId) {
-    const window = { dispatchEvent() {} };
+    const window = { dispatchEvent(event) { statuses.push(event.detail); } };
     const context = vm.createContext({
       window, indexedDB, crypto: webcrypto, TextEncoder, TextDecoder,
       navigator: { onLine: false },
       sessionStorage: { getItem: () => JSON.stringify({ schoolId, userId, role: 'TEACHER' }) },
       document: { readyState: 'loading', addEventListener() {}, getElementById() { return null; } },
-      CustomEvent: class {}
+      CustomEvent: class { constructor(_type, init) { this.detail = init.detail; } }
     });
     vm.runInContext(source, context);
     return window.AttendigoOffline;
   }
-  return { tab, stores };
+  return { tab, stores, statuses, failStorage() { unavailable = true; } };
 }
 const operation = status => ({
   operationId: 'shared-event-id', type: 'MANUAL_MARKS',
@@ -100,4 +102,15 @@ test('concurrent cross-school collision does not transfer or overwrite ownership
   assert.equal((await winner.pending()).length, 1);
   assert.equal((await loser.pending()).length, 0);
   await assert.rejects(loser.inspect('shared-event-id'), /not available/);
+});
+
+// Storage failures must not be interpreted as an empty successful queue.
+test('queue read failure rejects snapshot and does not erase captured records', async () => {
+  const d = device(), a = d.tab('school', 'teacher');
+  // Two reads release the deliberate shared-ID test barrier.
+  await Promise.all([a.enqueueOperation(operation('PRESENT')), a.enqueueOperation(operation('PRESENT'))]);
+  assert.equal(d.stores.events.size, 1);
+  d.failStorage();
+  await assert.rejects(a.snapshot(), /Storage unavailable/);
+  assert.equal(d.stores.events.size, 1);
 });
