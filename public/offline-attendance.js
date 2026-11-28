@@ -214,12 +214,29 @@
     return { operationId, status: 'PENDING' };
   }
   let syncing = false;
+  // A transient response is not an attendance conflict. Back off per account
+  // for this window, without touching the original immutable queued payload.
+  const retryWindows = new Map();
+  const transientStatus = status => status === 408 || status === 425 || status === 429 || status >= 500;
+  function deferUpload(id, response) {
+    const attempt = Math.min((retryWindows.get(id)?.attempt || 0) + 1, 8);
+    const base = Math.min(300000, 15000 * 2 ** (attempt - 1));
+    const raw = response?.headers?.get('Retry-After');
+    const seconds = raw != null && /^\d+$/.test(raw) ? Number(raw) * 1000 : NaN;
+    const date = raw ? Date.parse(raw) - Date.now() : NaN;
+    const requested = Number.isFinite(seconds) ? seconds : Number.isFinite(date) ? date : 0;
+    // Honor reasonable server-directed delays; cap malformed/extreme values.
+    const delay = Math.max(base + Math.floor(Math.random() * base / 4), Math.min(3600000, Math.max(0, requested)));
+    retryWindows.set(id, { attempt, until: Date.now() + delay });
+    syncMessage = 'School server temporarily unavailable or busy. Queued records retained for automatic retry.';
+  }
   // Web Locks coordinate all same-origin tabs/PWA windows where supported.
   // Older browsers retain the existing per-window guard and server revalidation;
   // this is not a substitute for authoritative server idempotency.
   async function sync() {
     const id = owner();
     if (!id || !navigator.onLine || syncing) return { confirmations: {} };
+    if ((retryWindows.get(id)?.until || 0) > Date.now()) return { confirmations: {}, message: 'Waiting for safe automatic retry. Queued records retained.' };
     if (typeof navigator.locks?.request !== 'function') return syncOwned(id);
     try {
       return await navigator.locks.request('attendigo-device-attendance-sync:' + id,
@@ -272,6 +289,7 @@
             body: JSON.stringify(body)
           });
           if (response.status === 401 || response.status === 403 || response.status===428){syncMessage='School session or permissions need verification. Queued records retained.';break;}
+          if (transientStatus(response.status)) { deferUpload(id, response); break; }
           const data = await response.json().catch(() => ({}));
           const item = type === 'QR_SCAN' ? data.results?.[0] : null;
           let acknowledged = response.ok && (
@@ -286,6 +304,7 @@
               credentials:'same-origin', cache: 'no-store', headers: ownerHeaders
             });
             if (verified.status === 401 || verified.status === 403) break;
+            if (transientStatus(verified.status)) { deferUpload(id, verified); break; }
             if (!verified.ok) break;
             const remote = await verified.json();
             const marks = new Map((remote.marks || []).map(m => [m.studentId, m]));
@@ -295,6 +314,7 @@
           if (owner()!==id)break;
           if (acknowledged) {
             await remove(record.id);
+            retryWindows.delete(id);
             lastConfirmedAt = new Date().toISOString();
             syncMessage='School server confirmed attendance.';
             confirmations[record.id] = { status: type === 'QR_SCAN' ? item.status : 'ACCEPTED',
@@ -310,7 +330,7 @@
           } else {
             break; // Incomplete or unverifiable acknowledgment: never discard.
           }
-        } catch { syncMessage='School server unavailable. Queued records retained.';break; } // Network failure: preserve the queued payload.
+        } catch { deferUpload(id); break; } // Network/storage failure: preserve the queued payload.
       }
       if(syncMessage==='Checking school server…')syncMessage='Records awaiting school confirmation or review remain on this device.';
     } catch(error){syncMessage=error.message||'School server unavailable. Queued records retained.';}
