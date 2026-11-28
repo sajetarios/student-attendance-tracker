@@ -36,7 +36,10 @@ test('shared PWA install keeps required offline tools ready with bounded network
   assert.equal(activated, true);
   assert.ok(peak <= 4, 'no more than four precache downloads at a time');
   assert.equal(new Set(requests).size, requests.length);
-  assert.ok(requests.length <= 32, 'no unrelated portal-wide precache');
+  const nativeShell = ['/offline-dashboard.html', '/offline-dashboard-shell.css?v=1'];
+  for (const asset of nativeShell) assert.ok(requests.includes(asset), 'missing public native shell asset ' + asset);
+  assert.ok(requests.filter(url => !nativeShell.includes(url)).length <= 32, 'no unrelated portal-wide precache');
+  assert.ok(requests.length <= 34, 'only two additional public shell assets allowed');
   for (const page of ['offline-welcome.html', 'offline-sheet.html', 'gate-offline.html', 'student-qr-offline.html']) {
     assert.ok(requests.includes('/' + page));
     const html = fs.readFileSync(path.join(publicDir, page), 'utf8');
@@ -44,12 +47,20 @@ test('shared PWA install keeps required offline tools ready with bounded network
       assert.ok(requests.includes(match[1]), page + ' missing ' + match[1]);
     }
   }
+  const shell = fs.readFileSync(path.join(publicDir, 'offline-dashboard.html'), 'utf8');
+  for (const match of shell.matchAll(/<(?:script|link)\b[^>]*?\b(?:src|href)=["'](\/[^"']+)["']/gi)) assert.ok(nativeShell.includes(match[1]), 'unexpected shell dependency ' + match[1]);
   assert.ok(requests.includes('/vendor/html5-qrcode.min.js'));
   assert.ok(!requests.some(url => /principal-dashboard|parent-admin|portal\.js/.test(url)));
 });
 
 test('a failed essential offline download does not replace the active worker', async () => {
   const { error, activated } = await simulateInstall('/offline-sheet.html');
+  assert.ok(error);
+  assert.equal(activated, false);
+});
+
+test('a failed public native shell dependency also prevents activation', async () => {
+  const { error, activated } = await simulateInstall('/offline-dashboard-shell.css?v=1');
   assert.ok(error);
   assert.equal(activated, false);
 });
