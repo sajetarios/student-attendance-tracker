@@ -10,7 +10,7 @@ const source = fs.readFileSync(path.join(__dirname, '..', 'public', 'offline-att
 // A shared, asynchronous IndexedDB model. Deliberately forces the first two
 // event reads to observe absence before either writer can claim the ID.
 // Real Chromium/WebKit IndexedDB and full server replay are separate release gates.
-function device() {
+function device({ locks, fetch } = {}) {
   const stores = { events: new Map(), keys: new Map() };
   const waiters = [];
   const statuses = [];
@@ -62,7 +62,7 @@ function device() {
     const window = { dispatchEvent(event) { statuses.push(event.detail); } };
     const context = vm.createContext({
       window, indexedDB, crypto: webcrypto, TextEncoder, TextDecoder,
-      navigator: network,
+      navigator: Object.assign(network, { locks }), fetch,
       sessionStorage: { getItem: () => JSON.stringify({ schoolId, userId, role: 'TEACHER' }) },
       document: { readyState: 'loading', addEventListener() {}, getElementById() { return null; } },
       CustomEvent: class { constructor(_type, init) { this.detail = init.detail; } }
@@ -121,5 +121,54 @@ test('queue read failure rejects snapshot and does not erase captured records', 
   assert.equal(status.waiting, null);
   assert.equal(status.needsReview, null);
   assert.match(status.syncMessage, /Do not clear browser data/);
+  assert.equal(d.stores.events.size, 1);
+});
+
+test('supported browser locks prevent simultaneous same-account upload attempts', async () => {
+  const held = new Set();
+  const locks = { async request(name, options, callback) {
+    assert.equal(options.mode, 'exclusive');
+    assert.equal(options.ifAvailable, true);
+    if (held.has(name)) return callback(null);
+    held.add(name);
+    try { return await callback({ name }); }
+    finally { held.delete(name); }
+  }};
+  let started, release;
+  const reached = new Promise(resolve => { started = resolve; });
+  const blocked = new Promise(resolve => { release = resolve; });
+  let calls = 0;
+  const d = device({ locks, fetch: async url => {
+    assert.equal(url, '/api/auth/me');
+    calls++;
+    started();
+    await blocked;
+    return { ok: false, status: 503 };
+  }});
+  const a = d.tab('school', 'teacher'), b = d.tab('school', 'teacher');
+  await Promise.all([a.enqueueOperation(operation('PRESENT')), b.enqueueOperation(operation('PRESENT'))]);
+  d.reconnect();
+  const first = a.sync();
+  await reached;
+  try {
+    const second = await b.sync();
+    assert.equal(Object.keys(second.confirmations).length, 0);
+    assert.equal(calls, 1);
+    assert.equal(d.stores.events.size, 1);
+  } finally { release(); await first; }
+  await b.sync();
+  assert.equal(calls, 2, 'lock must release for a later retry');
+  assert.equal(d.stores.events.size, 1);
+});
+test('failed lock acquisition does not fall back to uncoordinated upload', async () => {
+  let calls = 0;
+  const d = device({ locks: { request: async () => { throw Error('lock unavailable'); } },
+    fetch: async () => { calls++; throw Error('unexpected upload'); } });
+  const a = d.tab('school', 'teacher'), b = d.tab('school', 'teacher');
+  await Promise.all([a.enqueueOperation(operation('PRESENT')), b.enqueueOperation(operation('PRESENT'))]);
+  d.reconnect();
+  const result = await a.sync();
+  assert.match(result.message, /coordination unavailable/);
+  assert.equal(calls, 0);
   assert.equal(d.stores.events.size, 1);
 });
