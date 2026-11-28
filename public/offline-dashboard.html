@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="attendigo-public-shell" content="native-dashboard-v1">
+<title>Attendigo | Offline workspace</title>
+<link rel="stylesheet" href="/offline-dashboard-shell.css?v=1">
+</head>
+<body>
+<header class="workspace-header"><span class="brand">Attendigo</span><span class="connection">Connection unavailable</span></header>
+<main class="workspace">
+  <section class="workspace-status" aria-labelledby="workspace-title">
+    <p class="eyebrow">School workspace</p>
+    <h1 id="workspace-title">Offline dashboard</h1>
+    <p role="status">Your connection is unavailable. Private school records and attendance controls stay locked until this device's offline authorization can be verified.</p>
+    <form method="get"><button type="submit">Retry connection</button></form>
+    <p class="secondary">Existing prepared attendance tools remain available through the protected recovery workflow.</p>
+    <a href="/offline-welcome.html">Attendance recovery</a>
+  </section>
+  <!-- Private components may be mounted only by the verified offline lease and snapshot pipeline. -->
+  <section id="offline-authorized-workspace" hidden aria-label="Authorized workspace"></section>
+</main>
+</body>
+</html>

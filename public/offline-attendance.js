@@ -41,13 +41,13 @@
     } finally { db.close(); }
   }
   const put = record => transaction(STORE, 'readwrite', store => store.put(record));
+  const add = record => transaction(STORE, 'readwrite', store => store.add(record));
   const remove = id => transaction(STORE, 'readwrite', store => store.delete(id));
   const byId = id => transaction(STORE, 'readonly', (store, done) => {
     const req = store.get(id);
     req.onsuccess = () => done(req.result || null);
   });
-  async function rows() {
-    const id = owner();
+  async function rows(id = owner()) {
     if (!id) return [];
     return transaction(STORE, 'readonly', (store, done) => {
       const req = store.index('owner').getAll(id);
@@ -117,7 +117,23 @@
     };
   }
   async function emit() {
-    const pending = await rows().catch(() => []);
+    let pending;
+    try { pending = await rows(); }
+    catch (error) {
+      const el = document.getElementById('attendigoOfflineStatus');
+      if (el) {
+        el.hidden = false;
+        el.style.display = '';
+        el.textContent = 'Device storage unavailable';
+        el.title = 'Attendance counts cannot be verified. Do not clear browser data.';
+      }
+      window.dispatchEvent(new CustomEvent('attendigo-offline-status', {
+        detail: { pending: null, waiting: null, needsReview: null, byType: null,
+          storageUnavailable: true, syncing, online: navigator.onLine,
+          lastConfirmedAt: null, syncMessage: 'Device storage unavailable. Attendance counts cannot be verified. Do not clear browser data.' }
+      }));
+      return;
+    }
     const review = pending.filter(record => record.status === 'REVIEW').length;
     const el = document.getElementById('attendigoOfflineStatus');
     if (el) {
@@ -148,17 +164,19 @@
     if (!TYPES.has(type) || typeof operationId !== 'string' || !operationId || !payload || typeof payload !== 'object') {
       throw Error('Invalid attendance synchronization operation.');
     }
-    const current = await rows();
+    const current = await rows(id);
+    if (owner() !== id) throw Error('Offline account changed before queuing attendance.');
     // UUIDs are globally keyed in the legacy database. Never allow an event
     // from another logged-in school/account to be overwritten by a collision.
     const stored = await byId(operationId);
     if (stored && stored.owner !== id) throw Error('Operation ID belongs to another account.');
-    const found = current.find(row => row.id === operationId);
+    const found = stored;
     if (found) {
       const existing = await decrypt(found);
       if ((found.type || 'QR_SCAN') !== type || JSON.stringify(existing) !== JSON.stringify(payload)) {
         throw Error('Operation ID was reused for different attendance data.');
       }
+      if (owner() !== id) throw Error('Offline account changed before queuing attendance.');
       return { operationId, status: found.status };
     }
     // Avoid duplicate sign-off or manual batch operations when the user taps
@@ -168,30 +186,82 @@
       if (queued.type !== type || queued.status !== 'PENDING') continue;
       try {
         if (JSON.stringify(await decrypt(queued)) === JSON.stringify(payload)) {
+          if (owner() !== id) throw Error('Offline account changed before queuing attendance.');
           return { operationId: queued.id, status: queued.status };
         }
       } catch {} // Unreadable records remain on device for review.
     }
     const encrypted = await encrypt(id, payload);
     const createdAt = Math.max(Date.now(), ...current.map(r => Number(r.createdAt) || 0), 0) + 1;
-    await put({ id: operationId, owner: id, type, encrypted, status: 'PENDING',
-      attempts: 0, createdAt });
+    if (owner() !== id) throw Error('Offline account changed before queuing attendance.');
+    // IndexedDB's unique primary key is the final cross-tab collision guard.
+    // A put() here would overwrite a competing capture between the read and write.
+    try {
+      await add({ id: operationId, owner: id, type, encrypted, status: 'PENDING',
+        attempts: 0, createdAt });
+    } catch (error) {
+      const winner = await byId(operationId);
+      if (!winner) throw error;
+      if (winner.owner !== id) throw Error('Operation ID belongs to another account.');
+      if ((winner.type || 'QR_SCAN') !== type || JSON.stringify(await decrypt(winner)) !== JSON.stringify(payload)) {
+        throw Error('Operation ID was reused for different attendance data.');
+      }
+      if (owner() !== id) throw Error('Offline account changed before queuing attendance.');
+      return { operationId, status: winner.status };
+    }
+    if (owner() !== id) throw Error('Attendance retained for its original account. Sign in to that account to synchronize.');
     await emit();
     return { operationId, status: 'PENDING' };
   }
   let syncing = false;
+  // A transient response is not an attendance conflict. Back off per account
+  // for this window, without touching the original immutable queued payload.
+  const retryWindows = new Map();
+  const transientStatus = status => status === 408 || status === 425 || status === 429 || status >= 500;
+  function deferUpload(id, response) {
+    const attempt = Math.min((retryWindows.get(id)?.attempt || 0) + 1, 8);
+    const base = Math.min(300000, 15000 * 2 ** (attempt - 1));
+    const raw = response?.headers?.get('Retry-After');
+    const seconds = raw != null && /^\d+$/.test(raw) ? Number(raw) * 1000 : NaN;
+    const date = raw ? Date.parse(raw) - Date.now() : NaN;
+    const requested = Number.isFinite(seconds) ? seconds : Number.isFinite(date) ? date : 0;
+    // Honor reasonable server-directed delays; cap malformed/extreme values.
+    const delay = Math.max(base + Math.floor(Math.random() * base / 4), Math.min(3600000, Math.max(0, requested)));
+    retryWindows.set(id, { attempt, until: Date.now() + delay });
+    syncMessage = 'School server temporarily unavailable or busy. Queued records retained for automatic retry.';
+  }
+  // Web Locks coordinate all same-origin tabs/PWA windows where supported.
+  // Older browsers retain the existing per-window guard and server revalidation;
+  // this is not a substitute for authoritative server idempotency.
   async function sync() {
     const id = owner();
+    if (!id || !navigator.onLine || syncing) return { confirmations: {} };
+    if ((retryWindows.get(id)?.until || 0) > Date.now()) return { confirmations: {}, message: 'Waiting for safe automatic retry. Queued records retained.' };
+    if (typeof navigator.locks?.request !== 'function') return syncOwned(id);
+    try {
+      return await navigator.locks.request('attendigo-device-attendance-sync:' + id,
+        { mode: 'exclusive', ifAvailable: true }, lock => {
+          if (!lock || owner() !== id) return { confirmations: {} };
+          return syncOwned(id);
+        });
+    } catch {
+      // Never bypass a failed cross-window lock with an uncoordinated upload.
+      return { confirmations: {}, message: 'Device sync coordination unavailable. Queued records retained.' };
+    }
+  }
+  async function syncOwned(id) {
     const confirmations = {};
-    if (syncing || !navigator.onLine || !id) return { confirmations };
+    if (syncing || !navigator.onLine || !id || owner() !== id) return { confirmations };
     const ownerHeaders={'X-Attendigo-Queue-Owner':id};
     syncing = true;
     syncMessage='Checking school server…';
     try {
       await emit();
-      if(!(await rows()).length){syncMessage='No queued operations for this account.';return {confirmations};}
+      if(!(await rows(id)).length){syncMessage='No queued operations for this account.';return {confirmations};}
+      if (owner() !== id) return { confirmations };
       await verifiedOwner(id);
-      const records = (await rows())
+      if (owner() !== id) return { confirmations };
+      const records = (await rows(id))
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).slice(0, 50);
       for (const record of records) {
         // A conflict is a barrier: never sign off while an earlier correction
@@ -219,6 +289,7 @@
             body: JSON.stringify(body)
           });
           if (response.status === 401 || response.status === 403 || response.status===428){syncMessage='School session or permissions need verification. Queued records retained.';break;}
+          if (transientStatus(response.status)) { deferUpload(id, response); break; }
           const data = await response.json().catch(() => ({}));
           const item = type === 'QR_SCAN' ? data.results?.[0] : null;
           let acknowledged = response.ok && (
@@ -233,6 +304,7 @@
               credentials:'same-origin', cache: 'no-store', headers: ownerHeaders
             });
             if (verified.status === 401 || verified.status === 403) break;
+            if (transientStatus(verified.status)) { deferUpload(id, verified); break; }
             if (!verified.ok) break;
             const remote = await verified.json();
             const marks = new Map((remote.marks || []).map(m => [m.studentId, m]));
@@ -242,6 +314,7 @@
           if (owner()!==id)break;
           if (acknowledged) {
             await remove(record.id);
+            retryWindows.delete(id);
             lastConfirmedAt = new Date().toISOString();
             syncMessage='School server confirmed attendance.';
             confirmations[record.id] = { status: type === 'QR_SCAN' ? item.status : 'ACCEPTED',
@@ -257,7 +330,7 @@
           } else {
             break; // Incomplete or unverifiable acknowledgment: never discard.
           }
-        } catch { syncMessage='School server unavailable. Queued records retained.';break; } // Network failure: preserve the queued payload.
+        } catch { deferUpload(id); break; } // Network/storage failure: preserve the queued payload.
       }
       if(syncMessage==='Checking school server…')syncMessage='Records awaiting school confirmation or review remain on this device.';
     } catch(error){syncMessage=error.message||'School server unavailable. Queued records retained.';}
@@ -368,6 +441,7 @@
     }
     emit();
     window.addEventListener('online', sync);
+    window.addEventListener('pageshow', sync);
     document.addEventListener('attendigo:portal-ready', sync);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
     setInterval(sync, 30000);

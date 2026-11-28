@@ -1,6 +1,7 @@
 const { hashPassword, verifyPassword, createOpaqueToken, hashToken } = require('./auth-security');
 const { createIpRateLimiter } = require('./request-limiter');
 const { canonicalStudentLoginUsername } = require('./generated-record-ids');
+const { issueOfflineLease, offlineAuthorizationContext, LeaseError } = require('./offline-authorization-lease');
 
 function validString(value, max = 160) {
   return typeof value === 'string' && value.trim().length > 0 && value.trim().length <= max;
@@ -409,7 +410,23 @@ function registerAuthRoutes(app, pool) {
     }
   });
 
-  app.get('/api/auth/me', async (req, res) => {
+  async function currentSession(req, res) {
+    const issuingLease = req.method === 'POST';
+    const requestingContext = req.path === '/api/auth/offline-context';
+    if (issuingLease || requestingContext) res.setHeader('Cache-Control','no-store, private');
+    function respond(user, expiresAt, sessionId) {
+      if (!issuingLease && !requestingContext) return res.json({ expiresAt, user });
+      res.setHeader('Cache-Control','no-store, private');
+      try {
+        const input={user,sessionId,expiresAt,privateKey:process.env.ATTENDIGO_OFFLINE_SIGNING_KEY};
+        if (requestingContext) return res.json(offlineAuthorizationContext(input));
+        const lease=issueOfflineLease({...input,devicePublicKey:req.body?.devicePublicKey});
+        return res.json(lease);
+      } catch (error) {
+        if (error instanceof LeaseError) return res.status(error.status).json({error:error.message});
+        return res.status(503).json({error:'Offline authorization is unavailable.'});
+      }
+    }
     const suppliedBearer=bearerToken(req);
     const browserStaff=staffCookieToken(req);
     const browserStudent=cookieToken(req);
@@ -446,7 +463,7 @@ function registerAuthRoutes(app, pool) {
       );
       if (!result.rowCount) {
         const studentSession = await pool.query(
-          `SELECT ss.session_id, ss.school_id, sa.student_account_id, sa.student_id,
+          `SELECT ss.session_id, ss.school_id, ss.expires_at, sa.student_account_id, sa.student_id,
                   sa.username, sa.must_change_password, st.full_name, st.grade_level, st.section,
                   s.school_code, s.school_name
            FROM student_sessions ss
@@ -459,17 +476,18 @@ function registerAuthRoutes(app, pool) {
         if (!studentSession.rowCount) return res.status(401).json({ error: 'Session is invalid or expired.' });
         const student = studentSession.rows[0];
         await pool.query('UPDATE student_sessions SET last_seen_at=NOW() WHERE session_id=$1', [student.session_id]);
-        return res.json({ user: {
+        return respond({
           userId: student.student_account_id, studentAccountId: student.student_account_id,
           studentId: student.student_id, username: student.username, displayName: student.full_name,
           role: 'STUDENT', gradeLevel: student.grade_level, section: student.section,
           mustChangePassword: Boolean(student.must_change_password), schoolId: student.school_id,
           schoolCode: student.school_code, schoolName: student.school_name
-        }});
+        },new Date(student.expires_at).toISOString(),student.session_id);
       }
       const row = result.rows[0];
       await pool.query('UPDATE user_sessions SET last_seen_at=NOW() WHERE session_id=$1', [row.session_id]);
       if (row.principal_type === 'PLATFORM') {
+        if (issuingLease || requestingContext) return res.status(403).json({error:'Platform accounts are not eligible for offline authorization.'});
         return res.json({ user: {
           userId: row.platform_user_id,
           username: row.platform_username,
@@ -477,7 +495,7 @@ function registerAuthRoutes(app, pool) {
           role: 'SUPER_ADMIN'
         }});
       }
-      return res.json({ expiresAt: new Date(row.expires_at).toISOString(), user: {
+      return respond({
         userId: row.school_user_id,
         username: row.school_username,
         displayName: row.school_display_name,
@@ -490,12 +508,15 @@ function registerAuthRoutes(app, pool) {
         schoolCode: row.school_code,
         schoolName: row.school_name,
         mustChangePassword: Boolean(row.school_must_change_password)
-      }});
+      },new Date(row.expires_at).toISOString(),row.session_id);
     } catch (err) {
       console.error('Session lookup failed:', err.message);
       return res.status(500).json({ error: 'Session service unavailable.' });
     }
-  });
+  }
+  app.get('/api/auth/me', currentSession);
+  app.post('/api/auth/offline-lease', currentSession);
+  app.get('/api/auth/offline-context', currentSession);
 
   app.post('/api/auth/logout', async (req, res) => {
     const tokens = [...new Set([bearerToken(req),staffCookieToken(req),cookieToken(req)].filter(Boolean))];

@@ -1,0 +1,213 @@
+'use strict';
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const vm = require('node:vm');
+const fs = require('node:fs');
+const path = require('node:path');
+const { webcrypto } = require('node:crypto');
+const source = fs.readFileSync(path.join(__dirname, '..', 'public', 'offline-attendance.js'), 'utf8');
+
+// A shared, asynchronous IndexedDB model. Deliberately forces the first two
+// event reads to observe absence before either writer can claim the ID.
+// Real Chromium/WebKit IndexedDB and full server replay are separate release gates.
+function device({ locks, fetch } = {}) {
+  const stores = { events: new Map(), keys: new Map() };
+  const waiters = [];
+  const statuses = [];
+  let unavailable = false;
+  const network = { onLine: false };
+  let reads = 0;
+  const db = {
+    close() {},
+    transaction(name) {
+      const map = stores[name];
+      const tx = { error: null, abort() { this.onabort?.(); } };
+      function request(work, barrier = false) {
+        const req = {};
+        const run = () => {
+          try {
+            req.result = work();
+            req.onsuccess?.();
+            tx.oncomplete?.();
+          } catch (error) {
+            tx.error = error;
+            tx.onabort?.();
+          }
+        };
+        if (barrier && reads++ < 2) {
+          waiters.push(run);
+          if (waiters.length === 2) setImmediate(() => waiters.splice(0).forEach(fn => fn()));
+        } else setImmediate(run);
+        return req;
+      }
+      tx.objectStore = () => ({
+        get: id => request(() => map.get(id), name === 'events'),
+        add: value => request(() => {
+          if (map.has(value.id)) throw Error('ConstraintError');
+          map.set(value.id, value);
+        }),
+        put: value => request(() => map.set(value.id, value)),
+        delete: id => request(() => map.delete(id)),
+        index: () => ({ getAll: owner => request(() => [...map.values()].filter(row => row.owner === owner)) })
+      });
+      return tx;
+    }
+  };
+  const indexedDB = { open() {
+    const req = { result: db };
+    setImmediate(() => { if (unavailable) { req.error = Error('Storage unavailable'); req.onerror?.(); } else req.onsuccess?.(); });
+    return req;
+  }};
+  function tab(schoolId, userId) {
+    const window = { dispatchEvent(event) { statuses.push(event.detail); } };
+    const context = vm.createContext({
+      window, indexedDB, crypto: webcrypto, TextEncoder, TextDecoder,
+      navigator: Object.assign(network, { locks }), fetch,
+      sessionStorage: { getItem: () => JSON.stringify({ schoolId, userId, role: 'TEACHER' }) },
+      document: { readyState: 'loading', addEventListener() {}, getElementById() { return null; } },
+      CustomEvent: class { constructor(_type, init) { this.detail = init.detail; } }
+    });
+    vm.runInContext(source, context);
+    return window.AttendigoOffline;
+  }
+  return { tab, stores, statuses, failStorage() { unavailable = true; }, reconnect() { network.onLine = true; } };
+}
+const operation = status => ({
+  operationId: 'shared-event-id', type: 'MANUAL_MARKS',
+  payload: { periodId: 'period', date: '2026-11-28', marks: [{ studentId: 'learner', status }] }
+});
+
+test('concurrent same-account identical operation retries keep one immutable record', async () => {
+  const d = device(), a = d.tab('school', 'teacher'), b = d.tab('school', 'teacher');
+  const results = await Promise.all([a.enqueueOperation(operation('PRESENT')), b.enqueueOperation(operation('PRESENT'))]);
+  assert.equal(results[0].operationId, results[1].operationId);
+  assert.equal(d.stores.events.size, 1);
+  assert.equal((await a.inspect('shared-event-id')).payload.marks[0].status, 'PRESENT');
+});
+test('concurrent different payloads with one ID cannot overwrite the first capture', async () => {
+  const d = device(), a = d.tab('school', 'teacher'), b = d.tab('school', 'teacher');
+  const results = await Promise.allSettled([a.enqueueOperation(operation('PRESENT')), b.enqueueOperation(operation('ABSENT'))]);
+  assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
+  assert.match(results.find(r => r.status === 'rejected').reason.message, /reused for different/);
+  assert.equal(d.stores.events.size, 1);
+  const expected = results[0].status === 'fulfilled' ? 'PRESENT' : 'ABSENT';
+  assert.equal((await a.inspect('shared-event-id')).payload.marks[0].status, expected);
+});
+test('concurrent cross-school collision does not transfer or overwrite ownership', async () => {
+  const d = device(), a = d.tab('school-a', 'teacher'), b = d.tab('school-b', 'teacher');
+  const results = await Promise.allSettled([a.enqueueOperation(operation('PRESENT')), b.enqueueOperation(operation('ABSENT'))]);
+  assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
+  assert.match(results.find(r => r.status === 'rejected').reason.message, /another account/);
+  assert.equal(d.stores.events.size, 1);
+  const [winner, loser] = results[0].status === 'fulfilled' ? [a,b] : [b,a];
+  assert.equal((await winner.pending()).length, 1);
+  assert.equal((await loser.pending()).length, 0);
+  await assert.rejects(loser.inspect('shared-event-id'), /not available/);
+});
+
+// Storage failures must not be interpreted as an empty successful queue.
+test('queue read failure rejects snapshot and does not erase captured records', async () => {
+  const d = device(), a = d.tab('school', 'teacher');
+  // Two reads release the deliberate shared-ID test barrier.
+  await Promise.all([a.enqueueOperation(operation('PRESENT')), a.enqueueOperation(operation('PRESENT'))]);
+  assert.equal(d.stores.events.size, 1);
+  d.failStorage();
+  await assert.rejects(a.snapshot(), /Storage unavailable/);
+  d.reconnect();
+  await a.sync();
+  const status = d.statuses.at(-1);
+  assert.equal(status.storageUnavailable, true);
+  assert.equal(status.pending, null);
+  assert.equal(status.waiting, null);
+  assert.equal(status.needsReview, null);
+  assert.match(status.syncMessage, /Do not clear browser data/);
+  assert.equal(d.stores.events.size, 1);
+});
+
+test('supported browser locks prevent simultaneous same-account upload attempts', async () => {
+  const held = new Set();
+  const locks = { async request(name, options, callback) {
+    assert.equal(options.mode, 'exclusive');
+    assert.equal(options.ifAvailable, true);
+    if (held.has(name)) return callback(null);
+    held.add(name);
+    try { return await callback({ name }); }
+    finally { held.delete(name); }
+  }};
+  let started, release;
+  const reached = new Promise(resolve => { started = resolve; });
+  const blocked = new Promise(resolve => { release = resolve; });
+  let calls = 0;
+  const d = device({ locks, fetch: async url => {
+    assert.equal(url, '/api/auth/me');
+    calls++;
+    started();
+    await blocked;
+    return { ok: false, status: 503 };
+  }});
+  const a = d.tab('school', 'teacher'), b = d.tab('school', 'teacher');
+  await Promise.all([a.enqueueOperation(operation('PRESENT')), b.enqueueOperation(operation('PRESENT'))]);
+  d.reconnect();
+  const first = a.sync();
+  await reached;
+  try {
+    const second = await b.sync();
+    assert.equal(Object.keys(second.confirmations).length, 0);
+    assert.equal(calls, 1);
+    assert.equal(d.stores.events.size, 1);
+  } finally { release(); await first; }
+  await b.sync();
+  assert.equal(calls, 2, 'lock must release for a later retry');
+  assert.equal(d.stores.events.size, 1);
+});
+test('failed lock acquisition does not fall back to uncoordinated upload', async () => {
+  let calls = 0;
+  const d = device({ locks: { request: async () => { throw Error('lock unavailable'); } },
+    fetch: async () => { calls++; throw Error('unexpected upload'); } });
+  const a = d.tab('school', 'teacher'), b = d.tab('school', 'teacher');
+  await Promise.all([a.enqueueOperation(operation('PRESENT')), b.enqueueOperation(operation('PRESENT'))]);
+  d.reconnect();
+  const result = await a.sync();
+  assert.match(result.message, /coordination unavailable/);
+  assert.equal(calls, 0);
+  assert.equal(d.stores.events.size, 1);
+});
+
+test('temporary HTTP failures retain the original queued operation without conflict or immediate retry', async () => {
+  for (const status of [408, 425, 429, 500, 502, 503, 504]) {
+    let uploads = 0;
+    const d = device({ fetch: async (url) => {
+      if (url === '/api/auth/me') return { ok: true, json: async () => ({ user: { schoolId: 'school', userId: 'teacher', role: 'TEACHER' } }) };
+      assert.equal(url, '/api/manual-attendance/sync');
+      uploads++;
+      return { ok: false, status, headers: { get: () => '60' } };
+    }});
+    const a = d.tab('school', 'teacher'), b = d.tab('school', 'teacher');
+    await Promise.all([a.enqueueOperation(operation('PRESENT')), b.enqueueOperation(operation('PRESENT'))]);
+    const before = d.stores.events.get('shared-event-id');
+    d.reconnect();
+    const result = await a.sync();
+    assert.equal(Object.keys(result.confirmations).length, 0);
+    assert.match(result.message, /temporarily unavailable or busy/);
+    assert.equal(d.stores.events.get('shared-event-id'), before);
+    assert.equal((await a.snapshot()).waiting, 1);
+    assert.equal((await a.snapshot()).needsReview, 0);
+    const retry = await a.sync();
+    assert.match(retry.message, /safe automatic retry/);
+    assert.equal(uploads, 1);
+  }
+});
+
+test('authoritative revision conflicts remain pending review rather than transient retry', async () => {
+  const d = device({ fetch: async (url) => {
+    if (url === '/api/auth/me') return { ok: true, json: async () => ({ user: { schoolId: 'school', userId: 'teacher', role: 'TEACHER' } }) };
+    return { ok: false, status: 409, json: async () => ({ error: 'Revision conflict' }) };
+  }});
+  const a = d.tab('school', 'teacher'), b = d.tab('school', 'teacher');
+  await Promise.all([a.enqueueOperation(operation('PRESENT')), b.enqueueOperation(operation('PRESENT'))]);
+  d.reconnect();
+  await a.sync();
+  assert.equal((await a.snapshot()).needsReview, 1);
+  assert.equal((await a.inspect('shared-event-id')).reason, 'Revision conflict');
+  assert.equal(d.stores.events.size, 1);
+});

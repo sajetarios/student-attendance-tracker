@@ -1,0 +1,18 @@
+/* Public shell only: no account-dependent styles or remote dependencies. */
+:root{font-family:Inter,system-ui,sans-serif;color:#18334d;background:#f4f7fb;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh}
+.workspace-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff;border-bottom:1px solid #dce5ef;padding:16px clamp(16px,4vw,40px)}
+.brand{font-size:22px;font-weight:750;letter-spacing:-.04em}
+.connection{font-size:16px;color:#6a4820;background:#fff4e0;border-radius:8px;padding:7px 10px}
+.workspace{max-width:880px;margin:auto;padding:clamp(16px,5vw,48px)}
+.workspace-status{background:#fff;border:1px solid #dce5ef;border-radius:16px;padding:clamp(20px,4vw,32px)}
+.eyebrow{font-size:16px;font-weight:600;color:#536a80}
+h1{font-size:clamp(26px,5vw,36px);margin:8px 0 16px}
+p{font-size:16px;line-height:1.6;max-width:62ch}
+button,a{font:inherit}
+button{background:#174b78;color:#fff;border:0;border-radius:8px;padding:12px 18px;min-height:44px;cursor:pointer}
+a{color:#174b78;display:inline-flex;align-items:center;min-height:44px}
+.secondary{margin-top:24px;color:#536a80}
+:focus-visible{outline:3px solid #287ab9;outline-offset:4px}
+@media(prefers-color-scheme:dark){:root{color:#e5edf6;background:#101b29;color-scheme:dark}.workspace-header,.workspace-status{background:#1a2939;border-color:#3b4a59}.eyebrow,.secondary{color:#bbcad9}a{color:#9ecffa}.connection{color:#fce0ad;background:#49361e}button{background:#2775aa}}

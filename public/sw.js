@@ -1,10 +1,12 @@
-const CACHE = "attendigo-v481-dtr-reconciliation";
+const CACHE = "attendigo-v482-native-shell-foundation";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
 const OFFLINE_TOOL_PAGES = ["/offline-sheet.html", "/gate-offline.html", "/student-qr-offline.html", "/offline-welcome.html"];
 const OFFLINE_REQUIRED = [
   ...OFFLINE_TOOL_PAGES,
+  "/offline-dashboard.html",
+  "/offline-dashboard-shell.css?v=1",
   "/attendigo-experience.css?v=4",
   "/attendigo-role-workspaces.js?v=5",
   "/attendigo-signature.css?v=15",
@@ -338,7 +340,7 @@ self.addEventListener("fetch", event => {
   const isAccountPage = ['/', '/index.html', '/portal-login.html',
     '/parent-register.html', '/platform-setup.html',
     '/force-password-change.html', '/class-qr-checkin.html', '/attendance-pin.html', '/staff-lunch-checkin.html', '/class-qr-monitor.html', '/portal.html',
-    '/student-portal.html', '/parent-portal.html'].includes(url.pathname);
+    '/student-portal.html', '/parent-portal.html', '/principal.html', '/offline-dashboard.html'].includes(url.pathname);
   const credentialKey = /^(?:password|passwd|pwd|pass|currentpassword|newpassword|confirmpassword|recoverycode|setupcode|accesstoken)$/i;
   if (isAccountPage && [...url.searchParams.keys()].some(key => credentialKey.test(key))) {
     event.respondWith(Response.redirect(new URL('/portal-login.html', url.origin).href, 303));
@@ -361,6 +363,27 @@ self.addEventListener("fetch", event => {
         if (fresh.url && new URL(fresh.url).pathname !== canonical) return await fallback();
         if (fresh.headers && !(fresh.headers.get("content-type") || "").includes("text/html")) return await fallback();
         try { const cache = await caches.open(CACHE); await cache.put(canonical, fresh.clone()); } catch {}
+        return fresh;
+      } catch {
+        return await fallback();
+      } finally {
+        if (timer !== null) clearTimeout(timer);
+      }
+    })());
+    return;
+  }
+
+  // Principal and Parent dashboards have no legacy attendance capture screen.
+  // Serve only the public, locked shell on transport failure or server outage.
+  // Never cache the authenticated HTML and never convert a denial into offline access.
+  if (request.mode === "navigate" && ["/principal.html", "/parent-portal.html"].includes(url.pathname)) {
+    event.respondWith((async () => {
+      const controller = typeof AbortController === "function" ? new AbortController() : null;
+      const timer = controller && typeof setTimeout === "function" ? setTimeout(() => controller.abort(), 4500) : null;
+      const fallback = () => offlineNavigationFallback("/offline-dashboard.html", false);
+      try {
+        const fresh = await fetch(request, { cache: "no-store", ...(controller ? { signal: controller.signal } : {}) });
+        if (fresh.status >= 500) return await fallback();
         return fresh;
       } catch {
         return await fallback();

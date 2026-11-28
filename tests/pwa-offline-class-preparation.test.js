@@ -33,9 +33,27 @@ test('offline setup makes no network request and reconnect reloads classes',asyn
 test('failed class retrieval is explicit and retry remains available',async()=>{
  const x=launch({reject:true});await settle();assert.equal(x.document.getElementById('prepare').disabled,true);assert.equal(x.document.getElementById('reloadClasses').disabled,false);assert.match(x.document.getElementById('message').textContent,/Unavailable/);
 });
-test('staff session verification includes authoritative expiry',()=>{
- const auth=fs.readFileSync(path.join(__dirname,'../auth-routes.js'),'utf8').split("app.get('/api/auth/me'")[1].split("app.post('/api/auth/logout'")[0];
- assert.match(auth,/us\.expires_at,/);assert.match(auth,/expiresAt: new Date\(row\.expires_at\)\.toISOString\(\)/);
+test('staff session verification includes authoritative expiry',async()=>{
+ const {registerAuthRoutes}=require('../auth-routes');
+ const expiry=new Date(Date.now()+3600000),routes=new Map(),queries=[];
+ const app={get(path,...handlers){routes.set('GET '+path,handlers.at(-1));},post(path,...handlers){routes.set('POST '+path,handlers.at(-1));}};
+ const pool={async query(sql,params){
+  queries.push({sql,params});
+  if(sql.includes('FROM user_sessions us')){
+   assert.match(sql,/us\.expires_at,/);
+   assert.match(sql,/us\.revoked_at IS NULL AND us\.expires_at>NOW\(\)/);
+   return {rowCount:1,rows:[{session_id:'session-a',principal_type:'SCHOOL',school_id:'school-a',school_user_id:'teacher-a',school_role:'TEACHER',expires_at:expiry}]};
+  }
+  assert.match(sql,/UPDATE user_sessions SET last_seen_at/);
+  return {rowCount:1,rows:[]};
+ }};
+ registerAuthRoutes(app,pool);
+ let status=200,body;
+ const res={status(n){status=n;return this;},json(value){body=value;return this;}};
+ await routes.get('GET /api/auth/me')({method:'GET',headers:{authorization:'Bearer test-session'}},res);
+ assert.equal(status,200);assert.equal(body.expiresAt,expiry.toISOString());
+ assert.equal(body.user.role,'TEACHER');assert.equal(body.user.userId,'teacher-a');
+ assert.equal(body.user.schoolId,'school-a');assert.equal(queries.length,2);
 });
 
 test('bulk preparation saves all assigned classes without replacing existing encrypted data',async()=>{
