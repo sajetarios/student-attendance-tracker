@@ -101,8 +101,9 @@
  }
  // The existing cookie session is browser-wide. Sign-out must invalidate every
  // role slot in one IndexedDB transaction, including incomplete provisioning.
- async function revokeAll(){
-  return transact('TEACHER','readwrite',(_row,store)=>{
+ async function revokeAll(role='TEACHER',expectedGeneration){
+  return transact(role,'readwrite',(row,store)=>{
+   if(expectedGeneration!==undefined&&(row?.generation??null)!==expectedGeneration)return false;
    for(const role of ROLES)store.put({role,generation:generation(),state:'REVOKED'});
    return true;
   });
